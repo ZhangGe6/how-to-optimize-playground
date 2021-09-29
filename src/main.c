@@ -14,8 +14,8 @@ int main(){
         exit(1);             
     }
 
-    //for (int msize = 40; msize <= 800; msize += 40){
-    for (int msize = 8; msize <= 8; msize += 4){    
+    for (int msize = 40; msize <= 400; msize += 40){
+    // for (int msize = 8; msize <= 8; msize += 4){    
         double *A, *B, *C_base, *C_optim;
         int m = msize, k = msize, n = msize;
         int lda = k, ldb = n, ldc = n;
@@ -39,9 +39,10 @@ int main(){
         // print_matrix(m, n, C, ldc);
 
         // printf("testing msize %d\n", msize);
-        int repeat_times = 1;   // TODO: when repeat_times is lager than 1, the max_diff is wierd. -> I know, because we are doing an [inplace] adding operation on C_optim
+        int repeat_times = 2;   // TODO: when repeat_times is lager than 1, the max_diff is wierd. -> I know, 
         double time_s = dclock();
         for (int repeat = 0; repeat < repeat_times; ++repeat){
+            zero_matrix(m, n, C_optim, ldc);  // because we are doing an [inplace] adding operation on C_optim, so we need to initialize C_optim every iter
             // MMult_base(m, k, n, A, B, C_optim, lda, ldb, ldc);
 
             // MMult_optim1_1(m, k, n, A, B, C_optim, lda, ldb, ldc);
@@ -54,7 +55,7 @@ int main(){
             // MMult_optim3_1(m, k, n, A, B, C_optim, lda, ldb, ldc);
             // MMult_optim3_2(m, k, n, A, B, C_optim, lda, ldb, ldc);
             // MMult_optim3_3(m, k, n, A, B, C_optim, lda, ldb, ldc);
-            MMult_optim3_4(m, k, n, A, B, C_optim, lda, ldb, ldc);
+            // MMult_optim3_4(m, k, n, A, B, C_optim, lda, ldb, ldc);
             // MMult_optim3_5(m, k, n, A, B, C_optim, lda, ldb, ldc);
 
             // MMult_optim4_1(m, k, n, A, B, C_optim, lda, ldb, ldc);
@@ -68,7 +69,7 @@ int main(){
             // MMult_optim5_4(m, k, n, A, B, C_optim, lda, ldb, ldc);
 
             // MMult_optim6_1(m, k, n, A, B, C_optim, lda, ldb, ldc);
-            // MMult_optim6_2(m, k, n, A, B, C_optim, lda, ldb, ldc);
+            MMult_optim6_2(m, k, n, A, B, C_optim, lda, ldb, ldc);
         }
         // print_matrix(m, n, C_optim, ldc);
         // print_matrix(m, n, C_base, ldc);

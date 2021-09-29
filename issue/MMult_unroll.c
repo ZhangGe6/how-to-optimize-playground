@@ -3,7 +3,7 @@
 #include "MMult.h"
 #include <stdio.h>
 
-// This gives a correct caculation result
+// This gives a correct calculation result
 void MMult_unroll(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
 {
   for (int j = 0; j < n; j += 2){
@@ -16,7 +16,7 @@ void MMult_unroll(int m, int k, int n, double *A, double *B, double *C, int lda,
   }
 }
 
-// However, when I tried inner loop, i or p, wrong result occurs
+// However, when I tried inner loop, i or p, a wrong result occurs
 void MMult_unroll_inner(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
 {
   for (int j = 0; j < n; j += 1){

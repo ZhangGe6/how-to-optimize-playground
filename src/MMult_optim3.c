@@ -46,7 +46,7 @@ void MMult_optim3_2(int m, int k, int n, double *A, double *B, double *C, int ld
 }
 
 
-// try to unroll the inner `p for`, but some errors happen. 3_4 and 3_5 are used for debugging
+// try to unroll the inner `p for`
 void MMult_optim3_3(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
 {
   for (int j = 0; j < n; j += 4){
@@ -77,31 +77,8 @@ void MMult_optim3_3(int m, int k, int n, double *A, double *B, double *C, int ld
   }
 }
 
-void MMult_optim3_4(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
-{
-  for (int j = 0; j < n; ++j){
-    for (int i  = 0; i < m; ++i){
-      double prev_C_i_j = C(i, j);
-      for (int p = 0; p < k; p += 2){
-        C(i, j) += A(i, p) * B(p, j);
-        // printf("j%d, i%d, p%d -> A%f, B%f, C%f\n", j, i, p, A(i, p), B(p, j), C(i, j));
-        C(i, j) += A(i, p + 1) * B(p + 1, j);
-        // printf("j%d, i%d, p%d -> A%f, B%f, C%f\n", j, i, p+1, A(i, p + 1), B(p + 1, j), C(i, j));
-        // C(i, j) += A(i, p + 2) * B(p + 2, j);
-        // // printf("j%d, i%d, p%d -> A%f, B%f, C%f\n", j, i, p+2, A(i, p + 2), B(p + 2, j), C(i, j));
-        // C(i, j) += A(i, p + 3) * B(p + 3, j);
-        // printf("j%d, i%d, p%d -> A%f, B%f, C%f\n", j, i, p+3, A(i, p + 3), B(p + 3, j), C(i, j));
-      }
-      double final_C_i_j = C(i, j);
-      // printf("C(%d, %d) change from %f, to %f\n", i, j, prev_C_i_j, final_C_i_j);
-      
-    }
-    // printf("\n");
-  }
-  // printf("\n");
-}
 
-void MMult_optim3_5(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
+void MMult_optim3_4(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
 {
   for (int j = 0; j < n; ++j){
     for (int i  = 0; i < m; ++i){

@@ -10,7 +10,7 @@
 // In that repo, for B, there is only one indexing for ij, compared with the original ij*4p
 // Here there is p indexing for ij, is it avoidable?
 // nearly no performance boost (compared with 3_2)
-// TODO But the repo say that there is a big boost
+// TODO: But the repo say that there is a big boost
 void MMult_optim5_1(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
 {
   double * pointer_b_p_j;
