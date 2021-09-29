@@ -14,4 +14,3 @@
 #define C(i, j) C[i*ldc + j]
 #define mat(i, j) mat[(i)*(ldm) + (j)]
 #define mat2(i, j) mat2[(i)*(ldm) + (j)]
-
