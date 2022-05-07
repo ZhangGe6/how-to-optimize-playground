@@ -3,10 +3,9 @@
 #include "utils.h"
 #include "MMult.h"
 
-
 int main(){
     FILE *fptr;
-    fptr = fopen("../res/MMul_optim6_1.txt","w");
+    fptr = fopen("../res/MMul_optim7_2.txt","w");
     // fptr = fopen("../res/tmp.txt","w");
     if(fptr == NULL)
     {
@@ -14,7 +13,7 @@ int main(){
         exit(1);             
     }
 
-    for (int msize = 40; msize <= 400; msize += 40){
+    for (int msize = 40; msize <= 800; msize += 40){
     // for (int msize = 8; msize <= 8; msize += 4){    
         double *A, *B, *C_base, *C_optim;
         int m = msize, k = msize, n = msize;
@@ -43,6 +42,7 @@ int main(){
         double time_s = dclock();
         for (int repeat = 0; repeat < repeat_times; ++repeat){
             zero_matrix(m, n, C_optim, ldc);  // because we are doing an [inplace] adding operation on C_optim, so we need to initialize C_optim every iter
+            
             // MMult_base(m, k, n, A, B, C_optim, lda, ldb, ldc);
 
             // MMult_optim1_1(m, k, n, A, B, C_optim, lda, ldb, ldc);
@@ -65,11 +65,15 @@ int main(){
 
             // MMult_optim5_1(m, k, n, A, B, C_optim, lda, ldb, ldc);
             // MMult_optim5_2(m, k, n, A, B, C_optim, lda, ldb, ldc); 
-            // MMult_optim5_3(m, k, n, A, B, C_optim, lda, ldb, ldc);
-            // MMult_optim5_4(m, k, n, A, B, C_optim, lda, ldb, ldc);
 
             // MMult_optim6_1(m, k, n, A, B, C_optim, lda, ldb, ldc);
-            MMult_optim6_2(m, k, n, A, B, C_optim, lda, ldb, ldc);
+            // MMult_optim6_2(m, k, n, A, B, C_optim, lda, ldb, ldc);
+            // MMult_optim6_3(m, k, n, A, B, C_optim, lda, ldb, ldc);
+            // MMult_optim6_4(m, k, n, A, B, C_optim, lda, ldb, ldc);
+            // MMult_optim6_5(m, k, n, A, B, C_optim, lda, ldb, ldc);
+
+            // MMult_optim7_1(m, k, n, A, B, C_optim, lda, ldb, ldc);
+            MMult_optim7_2(m, k, n, A, B, C_optim, lda, ldb, ldc);
         }
         // print_matrix(m, n, C_optim, ldc);
         // print_matrix(m, n, C_base, ldc);

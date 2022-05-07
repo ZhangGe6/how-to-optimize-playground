@@ -19,6 +19,7 @@ void MMult_optim3_1(int m, int k, int n, double *A, double *B, double *C, int ld
 void MMult_optim3_2(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc);
 void MMult_optim3_3(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc);
 void MMult_optim3_4(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc);
+void MMult_optim3_5(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc);
 
 // start to use register
 void MMult_optim4_1(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc);
@@ -36,3 +37,9 @@ void MMult_optim5_2(int m, int k, int n, double *A, double *B, double *C, int ld
 // the unrolling schema gets wrong result
 void MMult_optim6_1(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc);
 void MMult_optim6_2(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc);
+void MMult_optim6_3(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc);
+void MMult_optim6_4(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc);
+
+// start to use vector registers
+void MMult_optim7_1(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc);
+void MMult_optim7_2(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc);

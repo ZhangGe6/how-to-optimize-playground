@@ -5,27 +5,21 @@ CFLAGS     := -O2 -Wall -msse3
 LDFLAGS    := -lm
 
 
-UTIL := utils.o
 MulMethods := $(patsubst %.c, %.o, $(wildcard MMult*.c))
-TEST_OBJS  := main.o $(MulMethods)
+OBJS  := main.o utils.o $(MulMethods)
 
-%.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 all:
-	make clean
 	echo $(MulMethods)
-	make test_MMult.x
-	make clean_tmp
+	make test_MMult
+	make clean
 
-test_MMult.x: $(TEST_OBJS) $(UTIL) params.h
-	$(CC) $(TEST_OBJS) $(UTIL) $(LDFLAGS) $(BLAS_LIB) -o $(TEST_BIN) $@ 
+test_MMult: $(OBJS) params.h
+	$(CC) $(OBJS) $(LDFLAGS) $(BLAS_LIB) -o $@ 
 
 clean:
-	rm -f *.o *.x
-clean_tmp:
 	rm -f *.o
 
 

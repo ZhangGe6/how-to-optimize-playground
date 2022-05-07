@@ -5,6 +5,7 @@
 // As https://www.geeksforgeeks.org/understanding-register-keyword/ says, Registers are faster than memory to access, 
 // so the variables which are most frequently used in a C program can be put in registers using register keyword
 
+// use register based on MMult_optim3_2
 // WE CAN SEE A LARGE SPEED BOOST!
 void MMult_optim4_1(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
 {
@@ -40,7 +41,6 @@ void MMult_optim4_2(int m, int k, int n, double *A, double *B, double *C, int ld
 
   for (int j = 0; j < n; j += 4){
     for (int i  = 0; i < m; i += 1){
-      
       for (int p = 0; p < k; ++p){
         // B(p, i) ~ B(p, j + 3) are frequently acceesd (in the loop), so we put it into register.
         // TODO But will moving to a register will cost more time? Maybe it is a trade-off

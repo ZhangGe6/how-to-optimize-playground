@@ -46,7 +46,7 @@ void MMult_optim3_2(int m, int k, int n, double *A, double *B, double *C, int ld
 }
 
 
-// try to unroll the inner `p for`
+// try to unroll the inner `p for`, nearly no boost
 void MMult_optim3_3(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
 {
   for (int j = 0; j < n; j += 4){
@@ -78,51 +78,38 @@ void MMult_optim3_3(int m, int k, int n, double *A, double *B, double *C, int ld
 }
 
 
+// change i j order based on 3_2, nearly no boost
 void MMult_optim3_4(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
 {
-  for (int j = 0; j < n; ++j){
-    for (int i  = 0; i < m; ++i){
-      double no_unroll_prev_C_i_j = C(i, j);
-      // no unroll
-      printf("B(5, 0) = %f\n", B(5, 0));
-      for (int p = 0; p < k; p += 1){
+  for (int i = 0; i < m; i += 1){
+    for (int j  = 0; j < n; j += 4){
+      for (int p = 0; p < k; ++p){
+
+        // C(i, j) += A(i, p) * B(p, j);
+        // C(i + 1, j) += A(i + 1, p) * B(p, j);
+        // C(i + 2, j) += A(i + 2, p) * B(p, j);
+        // C(i + 3, j) += A(i + 3, p) * B(p, j);
         C(i, j) += A(i, p) * B(p, j);
-        printf("j%d, i%d, p%d -> A(%d %d)%f, B(%d %d)%f, C%f\n", j, i, p, i, p, A(i, p), p, j, B(p, j), C(i, j));
+        C(i, j + 1) += A(i, p) * B(p, j + 1);
+        C(i, j + 2) += A(i, p) * B(p, j + 2);
+        C(i, j + 3) += A(i, p) * B(p, j + 3);
       }
-      double no_unroll_final_C_i_j = C(i, j);
-      printf("--> no unroll: C(%d, %d) change from %f, to %f\n", i, j, no_unroll_prev_C_i_j, no_unroll_final_C_i_j);
-      printf("B(5, 0) = %f\n", B(5, 0));
-
-      // unroll
-      C(i, j) = 0; // reset
-      double unroll_prev_C_i_j = C(i, j);
-      for (int p = 0; p < k; p += 4){
-        C(i, j) += A(i, p) * B(p, j);
-        printf("j%d, i%d, p%d -> A(%d %d)%f, B(%d %d)%f, C%f\n", j, i, p, i, p,  A(i, p), p, j, B(p, j), C(i, j));
-        C(i, j) += A(i, p + 1) * B(p + 1, j);
-        printf("B(5, 0) = %f, now p=%d, p+1=%d, B(%d, 0)=%f\n", B(5, 0), p, p+1, p+1, B(p+1, 0));  // TODO It's too buggy
-        printf("j%d, i%d, p%d -> A(%d %d)%f, B(%d %d)%f, C%f\n", j, i, p+1, i, p+1,  A(i, p + 1), p+1, j, B(p + 1, j), C(i, j));
-        C(i, j) += A(i, p + 2) * B(p + 2, j);
-        printf("j%d, i%d, p%d -> A(%d %d)%f, B(%d %d)%f, C%f\n", j, i, p+2, i, p+2,  A(i, p + 2), p+2, j, B(p + 2, j), C(i, j));
-        C(i, j) += A(i, p + 3) * B(p + 3, j);
-        printf("j%d, i%d, p%d -> A(%d %d)%f, B(%d %d)%f, C%f\n", j, i, p+3, i, p+3,  A(i, p + 3), p+3, j, B(p + 3, j), C(i, j));
-      }
-      double unroll_final_C_i_j = C(i, j);
-      printf("--> unroll: C(%d, %d) change from %f, to %f\n", i, j, unroll_prev_C_i_j, unroll_final_C_i_j);
-      printf("B(5, 0) = %f\n", B(5, 0));
-
-
-      // // no unroll again
-      // C(i, j) = 0; // reset
-      // no_unroll_prev_C_i_j = C(i, j);
-      // for (int p = 0; p < k; p += 1){
-      //   C(i, j) += A(i, p) * B(p, j);
-      //   printf("j%d, i%d, p%d -> A%f, B%f, C%f\n", j, i, p, A(i, p), B(p, j), C(i, j));
-      // }
-      // no_unroll_final_C_i_j = C(i, j);
-      // printf("--> no unroll: C(%d, %d) change from %f, to %f\n", i, j, no_unroll_prev_C_i_j, no_unroll_final_C_i_j);
-      printf("\n");
     }
-    
+  }
+}
+
+// change i j order based on 3_2, but nearly no boost, too
+void MMult_optim3_5(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
+{
+  for (int i = 0; i < m; i += 4){
+    for (int j  = 0; j < n; j += 1){
+      for (int p = 0; p < k; ++p){
+
+        C(i, j) += A(i, p) * B(p, j);
+        C(i + 1, j) += A(i + 1, p) * B(p, j);
+        C(i + 2, j) += A(i + 2, p) * B(p, j);
+        C(i + 3, j) += A(i + 3, p) * B(p, j);
+      }
+    }
   }
 }
