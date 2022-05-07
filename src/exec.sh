@@ -1,3 +1,3 @@
-make -j8
-./test_MMult.x
+make
+./test_MMult
 # python draw_speed.py
