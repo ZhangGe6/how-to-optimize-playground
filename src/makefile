@@ -13,10 +13,10 @@ OBJS  := main.o utils.o $(MulMethods)
 
 all:
 	echo $(MulMethods)
-	make test_MMult
+	make test_MMult.x
 	make clean
 
-test_MMult: $(OBJS) params.h
+test_MMult.x: $(OBJS) params.h
 	$(CC) $(OBJS) $(LDFLAGS) $(BLAS_LIB) -o $@ 
 
 clean:

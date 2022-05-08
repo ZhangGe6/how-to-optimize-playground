@@ -109,3 +109,35 @@ void MMult_optim3_5(int m, int k, int n, double *A, double *B, double *C, int ld
     }
   }
 }
+
+// try different unrooling
+// a little slower than 3_5 (confusing)
+void MMult_optim3_6(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
+{
+  for (int i = 0; i < m; i += 4){
+    for (int p = 0; p < k; ++p){
+      for (int j = 0; j < n; j += 1) {
+        C(i, j) += A(i, p) * B(p, j);
+        C(i + 1, j) += A(i + 1, p) * B(p, j);
+        C(i + 2, j) += A(i + 2, p) * B(p, j);
+        C(i + 3, j) += A(i + 3, p) * B(p, j);
+      }
+    }
+  }
+}
+
+// try different unrooling
+// a little faster than 3_5 (confusing)
+void MMult_optim3_7(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
+{
+  for (int i = 0; i < m; i += 1){
+    for (int p = 0; p < k; p += 4){
+      for (int j = 0; j < n; j += 1) {
+        C(i, j) += A(i, p) * B(p, j);
+        C(i, j) += A(i, p + 1) * B(p + 1, j);
+        C(i, j) += A(i, p + 2) * B(p + 2, j);
+        C(i, j) += A(i, p + 3) * B(p + 3, j);
+      }
+    }
+  }
+}

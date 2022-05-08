@@ -11,8 +11,8 @@ void MMult_optim4_1(int m, int k, int n, double *A, double *B, double *C, int ld
 {
   register double reg_c_i_j, reg_c_i_j_add_1, reg_c_i_j_add_2, reg_c_i_j_add_3;
 
-  for (int j = 0; j < n; j += 4){
-    for (int i  = 0; i < m; i += 1){
+  for (int i = 0; i < m; i += 1){
+    for (int j = 0; j < n; j += 4){
       // C(i, j) ~ C(i, j + 3) are frequently acceesd (in the loop), so we put it into register.
       reg_c_i_j = (double) 0;
       reg_c_i_j_add_1 = (double) 0;
@@ -34,13 +34,15 @@ void MMult_optim4_1(int m, int k, int n, double *A, double *B, double *C, int ld
 }
 
 // What about B(p, i) ~ B(p, j + 3)?
-// We can see a small speed boost, but less than 4_3
+// slightly slower than (or nearly the same) MMult_optim3_2
+// I think it is because of the PURELY EXTRA data move from cache to register
+// In addition, I guess that it is super fast to move data from cache to register
 void MMult_optim4_2(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
 {
   register double reg_b_i_j, reg_b_i_j_add_1, reg_b_i_j_add_2, reg_b_i_j_add_3;
 
-  for (int j = 0; j < n; j += 4){
-    for (int i  = 0; i < m; i += 1){
+  for (int i = 0; i < m; i += 1){
+    for (int j = 0; j < n; j += 4){
       for (int p = 0; p < k; ++p){
         // B(p, i) ~ B(p, j + 3) are frequently acceesd (in the loop), so we put it into register.
         // TODO But will moving to a register will cost more time? Maybe it is a trade-off
@@ -58,15 +60,17 @@ void MMult_optim4_2(int m, int k, int n, double *A, double *B, double *C, int ld
   }
 }
 
-
 // A(i, p) is also frequently acceesd, How about move A(i, p) into register
-// We can see a small speed boost, larger than 4_2
+// slightly faster than MMult_optim3_2
+// I think it is because of 
+  // 1. the EXTRA data move from cache to register        -> slower
+  // 2. the reg_a_i_p is moved once and used for 4 times  -> faster
 void MMult_optim4_3(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
 {
   register double reg_a_i_p;
 
-  for (int j = 0; j < n; j += 4){
-    for (int i  = 0; i < m; i += 1){
+  for (int i = 0; i < m; i += 1){
+    for (int j = 0; j < n; j += 4){
       for (int p = 0; p < k; ++p){
         // A(i, p) is frequently acceesd (in the loop), so we put it into register.
         // TODO But will moving to a register will cost more time? Maybe it is a trade-off
@@ -82,7 +86,6 @@ void MMult_optim4_3(int m, int k, int n, double *A, double *B, double *C, int ld
 }
 
 
-
 // How about make more use of register? i.e., move all C(i, j) ~ C(i, j + 3), B(p, i) ~ B(p, j + 3) and A(i, p) into register
 // marginal boost (very small) compared to 4_1
 void MMult_optim4_4(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
@@ -91,8 +94,8 @@ void MMult_optim4_4(int m, int k, int n, double *A, double *B, double *C, int ld
                   reg_b_p_j, reg_b_p_j_add_1, reg_b_p_j_add_2, reg_b_p_j_add_3, \
                   reg_a_i_p;
 
-  for (int j = 0; j < n; j += 4){
-    for (int i  = 0; i < m; i += 1){
+  for (int i = 0; i < m; i += 1){
+    for (int j = 0; j < n; j += 4){
       reg_c_i_j = (double) 0;
       reg_c_i_j_add_1 = (double) 0;
       reg_c_i_j_add_2 = (double) 0;

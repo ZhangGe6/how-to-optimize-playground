@@ -6,7 +6,7 @@
 int main() {
     FILE *fptr;
     // fptr = fopen("../res/MMul_base.txt","w");
-    fptr = fopen("../res/MMul_optim3_5.txt", "w");
+    fptr = fopen("../res/MMul_optim4_4.txt", "w");
     if(fptr == NULL)
     {
         printf("Error!");   
@@ -60,12 +60,14 @@ int main() {
             // MMult_optim3_2(m, k, n, A, B, C_optim, lda, ldb, ldc);
             // MMult_optim3_3(m, k, n, A, B, C_optim, lda, ldb, ldc);
             // MMult_optim3_4(m, k, n, A, B, C_optim, lda, ldb, ldc);
-            MMult_optim3_5(m, k, n, A, B, C_optim, lda, ldb, ldc);
+            // MMult_optim3_5(m, k, n, A, B, C_optim, lda, ldb, ldc);
+            // MMult_optim3_6(m, k, n, A, B, C_optim, lda, ldb, ldc);
+            // MMult_optim3_7(m, k, n, A, B, C_optim, lda, ldb, ldc);
 
             // MMult_optim4_1(m, k, n, A, B, C_optim, lda, ldb, ldc);
             // MMult_optim4_2(m, k, n, A, B, C_optim, lda, ldb, ldc);
             // MMult_optim4_3(m, k, n, A, B, C_optim, lda, ldb, ldc);
-            // MMult_optim4_4(m, k, n, A, B, C_optim, lda, ldb, ldc);
+            MMult_optim4_4(m, k, n, A, B, C_optim, lda, ldb, ldc);
 
             // MMult_optim5_1(m, k, n, A, B, C_optim, lda, ldb, ldc);
             // MMult_optim5_2(m, k, n, A, B, C_optim, lda, ldb, ldc); 
