@@ -6,8 +6,8 @@
 // No speed boost again
 void MMult_optim3_1(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
 {
-  for (int j = 0; j < n; j += 4){
-    for (int i  = 0; i < m; i += 1){
+  for (int i = 0; i < m; i += 1){
+    for (int j = 0; j < n; j += 4){
 
       for (int p = 0; p < k; ++p){
         C(i, j) += A(i, p) * B(p, j); // keep in mind that A(i, 0) is the row_starter of row i of A, and B(0, j) is the col_starter of col j of B
@@ -33,8 +33,8 @@ void MMult_optim3_1(int m, int k, int n, double *A, double *B, double *C, int ld
 // WE CAN SEE SOME SPEED BOOST!
 void MMult_optim3_2(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
 {
-  for (int j = 0; j < n; j += 4){
-    for (int i  = 0; i < m; i += 1){
+  for (int i = 0; i < m; i += 1){
+    for (int j = 0; j < n; j += 4){
       for (int p = 0; p < k; ++p){
         C(i, j) += A(i, p) * B(p, j);
         C(i, j + 1) += A(i, p) * B(p, j + 1);
@@ -46,11 +46,11 @@ void MMult_optim3_2(int m, int k, int n, double *A, double *B, double *C, int ld
 }
 
 
-// try to unroll the inner `p for`, nearly no boost
+// try to continue to unroll the inner `k for`, DEGRADE
 void MMult_optim3_3(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
 {
-  for (int j = 0; j < n; j += 4){
-    for (int i  = 0; i < m; i += 1){
+  for (int i = 0; i < m; i += 1){
+    for (int j = 0; j < n; j += 4){
       for (int p = 0; p < k; p += 4){
 
         C(i, j) += A(i, p) * B(p, j);
@@ -78,28 +78,8 @@ void MMult_optim3_3(int m, int k, int n, double *A, double *B, double *C, int ld
 }
 
 
-// change i j order based on 3_2, nearly no boost
+// unloop m, no difference between unrolling n
 void MMult_optim3_4(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
-{
-  for (int i = 0; i < m; i += 1){
-    for (int j  = 0; j < n; j += 4){
-      for (int p = 0; p < k; ++p){
-
-        // C(i, j) += A(i, p) * B(p, j);
-        // C(i + 1, j) += A(i + 1, p) * B(p, j);
-        // C(i + 2, j) += A(i + 2, p) * B(p, j);
-        // C(i + 3, j) += A(i + 3, p) * B(p, j);
-        C(i, j) += A(i, p) * B(p, j);
-        C(i, j + 1) += A(i, p) * B(p, j + 1);
-        C(i, j + 2) += A(i, p) * B(p, j + 2);
-        C(i, j + 3) += A(i, p) * B(p, j + 3);
-      }
-    }
-  }
-}
-
-// change i j order based on 3_2, but nearly no boost, too
-void MMult_optim3_5(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
 {
   for (int i = 0; i < m; i += 4){
     for (int j  = 0; j < n; j += 1){
@@ -109,6 +89,22 @@ void MMult_optim3_5(int m, int k, int n, double *A, double *B, double *C, int ld
         C(i + 1, j) += A(i + 1, p) * B(p, j);
         C(i + 2, j) += A(i + 2, p) * B(p, j);
         C(i + 3, j) += A(i + 3, p) * B(p, j);
+      }
+    }
+  }
+}
+
+// combine a faster reorder (MMult_optim1_1) and unloop
+// Faster than MMult_optim1_1
+void MMult_optim3_5(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
+{
+  for (int i = 0; i < m; ++i){
+    for (int p = 0; p < k; ++p){
+      for (int j = 0; j < n; j += 4) {
+        C(i, j) += A(i, p) * B(p, j);
+        C(i, j + 1) += A(i, p) * B(p, j + 1);
+        C(i, j + 2) += A(i, p) * B(p, j + 2);
+        C(i, j + 3) += A(i, p) * B(p, j + 3);
       }
     }
   }

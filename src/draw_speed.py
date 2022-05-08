@@ -9,15 +9,16 @@ plt.ylim((0, 10))
 plt.xlabel('matirx size')
 plt.ylabel('GFlops per second')
 
-methods = ['MMul_base',
-        #    'MMul_optim1_1', 'MMul_optim1_2', 'MMul_optim1_3', 
-        #    'MMul_optim2_1', 'MMul_optim2_2',
-        #    'MMul_optim3_1', 'MMul_optim3_2', 'MMul_optim3_3', 'MMul_optim3_4', 'MMul_optim3_5',
-        #    'MMul_optim4_1', 'MMul_optim4_2', 'MMul_optim4_3', 'MMul_optim4_4',
-        #    'MMul_optim5_1', 'MMul_optim5_2',
-        #    'MMul_optim6_1', 'MMul_optim6_2', 'MMul_optim6_3', 'MMul_optim6_4', 'MMul_optim6_5',
-        'MMul_optim7_1', 'MMul_optim7_2',
-           ]
+methods = [
+        'MMul_base',
+        #    'MMul_optim1_1', 'MMul_optim1_2', 'MMul_optim1_3', 'MMul_optim1_4',
+        #    'MMul_optim2_0', 'MMul_optim2_1', 'MMul_optim2_2', 'MMul_optim2_3',
+        #    'MMul_optim3_1', 'MMul_optim3_2', 'MMul_optim3_3', 'MMul_optim3_4',
+
+
+        # 'MMul_base', 'MMul_optim1_1', 'MMul_optim3_5'
+
+        ]
 
 colors = dict(mcolors.BASE_COLORS, **mcolors.CSS4_COLORS)
 # Sort colors by hue, saturation, value and name.

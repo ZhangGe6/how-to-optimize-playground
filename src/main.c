@@ -5,7 +5,8 @@
 
 int main() {
     FILE *fptr;
-    fptr = fopen("../res/MMul_optim7_2.txt","w");
+    // fptr = fopen("../res/MMul_base.txt","w");
+    fptr = fopen("../res/MMul_optim3_5.txt", "w");
     if(fptr == NULL)
     {
         printf("Error!");   
@@ -38,7 +39,7 @@ int main() {
         // print_matrix(m, n, C, ldc);
 
         // printf("testing msize %d\n", msize);
-        int repeat_times = 2;   // TODO: when repeat_times is lager than 1, the max_diff is wierd. -> I know, 
+        int repeat_times = 5;   // TODO: when repeat_times is lager than 1, the max_diff is wierd. -> I know, 
         for (int repeat = 0; repeat < repeat_times; ++repeat) {
             zero_matrix(m, n, C_optim, ldc);  // because we are doing an [inplace] adding operation on C_optim, so we need to initialize C_optim every iter
             double time_s = dclock();
@@ -48,15 +49,18 @@ int main() {
             // MMult_optim1_1(m, k, n, A, B, C_optim, lda, ldb, ldc);
             // MMult_optim1_2(m, k, n, A, B, C_optim, lda, ldb, ldc);
             // MMult_optim1_3(m, k, n, A, B, C_optim, lda, ldb, ldc);
+            // MMult_optim1_4(m, k, n, A, B, C_optim, lda, ldb, ldc);
 
+            // MMult_optim2_0(m, k, n, A, B, C_optim, lda, ldb, ldc);
             // MMult_optim2_1(m, k, n, A, B, C_optim, lda, ldb, ldc);
             // MMult_optim2_2(m, k, n, A, B, C_optim, lda, ldb, ldc);
+            // MMult_optim2_3(m, k, n, A, B, C_optim, lda, ldb, ldc);
 
             // MMult_optim3_1(m, k, n, A, B, C_optim, lda, ldb, ldc);
             // MMult_optim3_2(m, k, n, A, B, C_optim, lda, ldb, ldc);
             // MMult_optim3_3(m, k, n, A, B, C_optim, lda, ldb, ldc);
             // MMult_optim3_4(m, k, n, A, B, C_optim, lda, ldb, ldc);
-            // MMult_optim3_5(m, k, n, A, B, C_optim, lda, ldb, ldc);
+            MMult_optim3_5(m, k, n, A, B, C_optim, lda, ldb, ldc);
 
             // MMult_optim4_1(m, k, n, A, B, C_optim, lda, ldb, ldc);
             // MMult_optim4_2(m, k, n, A, B, C_optim, lda, ldb, ldc);
@@ -73,7 +77,7 @@ int main() {
             // MMult_optim6_5(m, k, n, A, B, C_optim, lda, ldb, ldc);
 
             // MMult_optim7_1(m, k, n, A, B, C_optim, lda, ldb, ldc);
-            MMult_optim7_2(m, k, n, A, B, C_optim, lda, ldb, ldc);
+            // MMult_optim7_2(m, k, n, A, B, C_optim, lda, ldb, ldc);
 
 
             time_best = MIN(time_best, (dclock() - time_s));
