@@ -2,7 +2,7 @@
 #include "MMult.h"
 
 // reorder the loops from i,j,k to i,k,j as suggested in https://sahnimanas.github.io/post/anatomy-of-a-high-performance-convolution/, a large boost
-// It is the best reordering schema because all of A, B and C read/write in row-wise manner
+// It is the best reordering schema because all of A, B and C read/write in row-wise manner (least cashe miss)
 void MMult_optim1_1(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
 {
   for (int i = 0; i < m; ++i){

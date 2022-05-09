@@ -22,6 +22,7 @@ double dclock();
 // https://stackoverflow.com/questions/53757633/what-is-m128d
 // https://zhuanlan.zhihu.com/p/55327037
 // 2 double, 4 float, ...
+// union: https://www.runoob.com/cprogramming/c-unions.html
 typedef union {
     __m128d reg;    
     double value[2];

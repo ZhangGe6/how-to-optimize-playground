@@ -5,6 +5,7 @@
 // https://github.com/flame/how-to-optimize-gemm/wiki#computing-a-4-x-4-block-of-c-at-a-time
 // gonna to use vector registers
 
+// https://github.com/flame/how-to-optimize-gemm/blob/master/src/MMult_4x4_10.c
 // use vector registers
 // a large boost compared with MMult_optim6_7
 // the comments are kept for easier comparison
@@ -124,3 +125,5 @@ void MMult_optim7_1(int m, int k, int n, double *A, double *B, double *C, int ld
     }
   }  
 }
+// MMult_optim7_1 works! cheers and keep going on!
+

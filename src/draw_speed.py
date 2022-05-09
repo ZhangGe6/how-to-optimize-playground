@@ -18,7 +18,8 @@ methods = [
         # 'MMul_optim3_2', 'MMul_optim5_1', 'MMul_optim5_2',
 
         # 'MMul_base', 'MMul_optim3_2', 'MMul_optim6_1', 'MMul_optim6_2', 'MMul_optim6_3', 'MMul_optim6_4', 'MMul_optim6_5', 'MMul_optim6_6', 'MMul_optim6_7',
-        'MMul_base', 'MMul_optim6_1', 'MMul_optim6_6', 'MMul_optim7_1'
+        # 'MMul_base', 'MMul_optim6_1', 'MMul_optim6_6', 'MMul_optim7_1'
+        'MMul_base',  'MMul_optim8_0', 'MMul_optim8_1', 'MMul_optim1_1', 'MMul_optim8_2', 'MMul_optim7_1', 'MMul_optim8_3'
 
 
         ]

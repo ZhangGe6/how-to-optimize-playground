@@ -46,6 +46,12 @@ void MMult_optim6_5(int m, int k, int n, double *A, double *B, double *C, int ld
 void MMult_optim6_6(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc);
 void MMult_optim6_7(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc);
 
-// start to use [vector] registers
+// start to use [vector] registers (SIMD)
 void MMult_optim7_1(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc);
-// void MMult_optim7_2(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc);
+
+// start to use cache blocking
+// no performance gain (confusing)
+void MMult_optim8_0(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc);
+void MMult_optim8_1(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc);
+void MMult_optim8_2(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc);
+void MMult_optim8_3(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc);

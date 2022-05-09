@@ -6,7 +6,7 @@
 int main() {
     FILE *fptr;
     // fptr = fopen("../res/MMul_base.txt","w");
-    fptr = fopen("../res/MMul_optim7_1.txt", "w");
+    fptr = fopen("../res/MMul_optim8_0.txt", "w");
     if(fptr == NULL)
     {
         printf("Error!");   
@@ -17,7 +17,7 @@ int main() {
     // for (int msize = 8; msize <= 8; msize += 4){    
         double *A, *B, *C_base, *C_optim;
         int m = msize, k = msize, n = msize;
-        int lda = k, ldb = n, ldc = n;
+        int lda = m, ldb = k, ldc = m;
 
         /* each item of output require 2K floating point ops (multiply & add) and perform M*K times 
         See https://sahnimanas.github.io/post/anatomy-of-a-high-performance-convolution/ for more details*/
@@ -81,8 +81,12 @@ int main() {
             // MMult_optim6_6(m, k, n, A, B, C_optim, lda, ldb, ldc);
             // MMult_optim6_7(m, k, n, A, B, C_optim, lda, ldb, ldc);
 
-            MMult_optim7_1(m, k, n, A, B, C_optim, lda, ldb, ldc);
-            // MMult_optim7_2(m, k, n, A, B, C_optim, lda, ldb, ldc);
+            // MMult_optim7_1(m, k, n, A, B, C_optim, lda, ldb, ldc);
+
+            MMult_optim8_0(m, k, n, A, B, C_optim, lda, ldb, ldc);
+            // MMult_optim8_1(m, k, n, A, B, C_optim, lda, ldb, ldc);
+            // MMult_optim8_2(m, k, n, A, B, C_optim, lda, ldb, ldc);
+            // MMult_optim8_3(m, k, n, A, B, C_optim, lda, ldb, ldc);
 
 
             time_best = MIN(time_best, (dclock() - time_s));
