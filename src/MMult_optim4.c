@@ -121,3 +121,33 @@ void MMult_optim4_4(int m, int k, int n, double *A, double *B, double *C, int ld
     }
   }
 }
+
+// Move only C(i, j+x) and A(i, p) to registers
+// nearly the same with 4_1
+void MMult_optim4_5(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
+{
+  register double reg_c_i_j, reg_c_i_j_add_1, reg_c_i_j_add_2, reg_c_i_j_add_3, reg_a_i_p;
+
+  for (int i = 0; i < m; i += 1){
+    for (int j = 0; j < n; j += 4){
+      // C(i, j) ~ C(i, j + 3) are frequently acceesd (in the loop), so we put it into register.
+      reg_c_i_j = (double) 0;
+      reg_c_i_j_add_1 = (double) 0;
+      reg_c_i_j_add_2 = (double) 0;
+      reg_c_i_j_add_3 = (double) 0;
+
+      for (int p = 0; p < k; ++p){
+        reg_a_i_p = A(i, p);
+
+        reg_c_i_j += reg_a_i_p * B(p, j);
+        reg_c_i_j_add_1 += reg_a_i_p * B(p, j + 1);
+        reg_c_i_j_add_2 += reg_a_i_p * B(p, j + 2);
+        reg_c_i_j_add_3 += reg_a_i_p * B(p, j + 3);
+      }
+      C(i, j) = reg_c_i_j;
+      C(i, j + 1) = reg_c_i_j_add_1;
+      C(i, j + 2) = reg_c_i_j_add_2;
+      C(i, j + 3) = reg_c_i_j_add_3;
+    }
+  }
+}
