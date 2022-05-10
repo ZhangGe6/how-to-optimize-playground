@@ -6,7 +6,7 @@
 int main() {
     FILE *fptr;
     // fptr = fopen("../res/MMul_base.txt","w");
-    fptr = fopen("../res/MMul_optim8_0.txt", "w");
+    fptr = fopen("../res/MMul_optim8_5.txt", "w");
     if(fptr == NULL)
     {
         printf("Error!");   
@@ -83,10 +83,14 @@ int main() {
 
             // MMult_optim7_1(m, k, n, A, B, C_optim, lda, ldb, ldc);
 
-            MMult_optim8_0(m, k, n, A, B, C_optim, lda, ldb, ldc);
+            // MMult_optim8_0(m, k, n, A, B, C_optim, lda, ldb, ldc);
             // MMult_optim8_1(m, k, n, A, B, C_optim, lda, ldb, ldc);
             // MMult_optim8_2(m, k, n, A, B, C_optim, lda, ldb, ldc);
             // MMult_optim8_3(m, k, n, A, B, C_optim, lda, ldb, ldc);
+            // MMult_optim8_4(m, k, n, A, B, C_optim, lda, ldb, ldc);
+            MMult_optim8_5(m, k, n, A, B, C_optim, lda, ldb, ldc);
+            // MMult_optim8_6(m, k, n, A, B, C_optim, lda, ldb, ldc);
+            // MMult_optim8_7(m, k, n, A, B, C_optim, lda, ldb, ldc);
 
 
             time_best = MIN(time_best, (dclock() - time_s));

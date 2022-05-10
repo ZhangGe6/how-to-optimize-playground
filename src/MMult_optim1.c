@@ -13,6 +13,17 @@ void MMult_optim1_1(int m, int k, int n, double *A, double *B, double *C, int ld
   }
 }
 
+// for cache blocking in k dimension 
+void MMult_optim1_1_k_seg(int m, int k_s, int k_e, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
+{
+  for (int i = 0; i < m; ++i){
+    for (int p = k_s; p < k_e; ++p){
+      for (int j = 0; j < n; ++j)
+        C(i, j) += A(i, p) * B(p, j);
+    }
+  }
+}
+
 // change the order from ijk to jik as suggested in https://github.com/flame/how-to-optimize-gemm/wiki/Optimization1, but no performance boost
 // I think the original author wrote like this because the original code is written in colomn-major fashion
 // Here, B and C read/write in colomn-wise manner, but A reads in row-wise manner, so a better indexing order for colomn-major may be like MMult_optim1_3
