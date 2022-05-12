@@ -64,3 +64,8 @@ void MMult_optim2_3(int m, int k, int n, double *A, double *B, double *C, int ld
     }
   }
 }
+
+// 循环展开的有效性原因，除了通常说的，降低分支预测，循环终止判断的开销外，
+// 这篇：https://zhuanlan.zhihu.com/p/395020419， 提供了一个新的角度：让访存局部性比较差的元素（B中元素），一次读取后，进行多次操作
+// （但在实验里，对i进行循环展开，并无加速效果）
+// https://github.com/flame/blislab/blob/master/tutorial.pdf 这里说循环展开可以减少一些值的更新次数

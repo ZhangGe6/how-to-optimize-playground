@@ -114,6 +114,11 @@ int main() {
         // assert(max_diff == 0);
         printf( "%d %f %f \n", msize, gflops / time_best, max_diff);
         fprintf(fptr,"%d %f %f \n", msize, gflops / time_best, max_diff);
+
+        free(A);
+        free(B);
+        free(C_base);
+        free(C_optim);
     }
     fclose(fptr); 
 }

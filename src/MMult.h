@@ -53,7 +53,6 @@ void MMult_optim7_1(int m, int k, int n, double *A, double *B, double *C, int ld
 void MMult_optim7_1_k_seg(int m, int k_s, int k_e, int n, double *A, double *B, double *C, int lda, int ldb, int ldc);
 
 // start to use cache blocking
-// no performance gain (confusing)
 void MMult_optim8_0(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc);
 void MMult_optim8_1(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc);
 void MMult_optim8_2(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc);

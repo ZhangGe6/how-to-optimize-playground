@@ -8,7 +8,7 @@
 // How it works
 // 1. https://chhzh123.github.io/blogs/2020-03-20-tvm-gemm/#%E6%95%B0%E7%BB%84%E6%89%93%E5%8C%85packing
 
-int blockSize = 40;
+// int blockSize = 40;
 
 // TODO: why pack need Z or N style? https://zhuanlan.zhihu.com/p/69700540
 void packA(int mBlock, int kBlock, double *A, double *packedA, int lda) {  // A here is one block of full A 
