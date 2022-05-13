@@ -49,7 +49,7 @@ void MMult_optim7_1_packA(int m, int k, int n, double *A, double *B, double *C, 
   double *packedA_ptr = packedA;
   for (int i = 0; i < m; i += 4) {
     for (int p = 0; p < k; ++p) {
-      *packedA_ptr = A(i, p);
+      *packedA_ptr = A(i, p);   // ATTENTION!: not A[i, p]
       *(packedA_ptr + 1) = A(i + 1, p);
       *(packedA_ptr + 2) = A(i + 2, p);
       *(packedA_ptr + 3) = A(i + 3, p);
@@ -58,7 +58,6 @@ void MMult_optim7_1_packA(int m, int k, int n, double *A, double *B, double *C, 
     }
   }
 
-  // print_matrix(m, k, A, lda);
 
   for (int i = 0; i < m; i += 4){
     for (int j = 0; j < n; j += 4){
@@ -82,8 +81,8 @@ void MMult_optim7_1_packA(int m, int k, int n, double *A, double *B, double *C, 
       // // packA(k, &A(i, 0), packedA, lda, 4);
       // }
       // printf("packed done, packed sample %f\n", packedA[0]);
-      
-      double *packed_a_i0 = &packedA[i * k];
+      double *packed_a_ptr = &packedA[i * k];  // A(i 0)
+
       for (int p = 0; p < k; ++p){
         // a_0p.reg = _mm_loaddup_pd((double *) &A(i, p));
         // a_1p.reg = _mm_loaddup_pd((double *) &A(i + 1, p));
@@ -92,11 +91,11 @@ void MMult_optim7_1_packA(int m, int k, int n, double *A, double *B, double *C, 
 
         // printf("A(i, p) %f,  packedA val %f\n", A(i, p), *packed_a_i0);
 
-        a_0p.reg = _mm_loaddup_pd((double *) packed_a_i0);  
-        a_1p.reg = _mm_loaddup_pd((double *) (packed_a_i0 + 1));
-        a_2p.reg = _mm_loaddup_pd((double *) (packed_a_i0 + 2));
-        a_3p.reg = _mm_loaddup_pd((double *) (packed_a_i0 + 3));
-        packed_a_i0 += 4;
+        a_0p.reg = _mm_loaddup_pd((double *) packed_a_ptr);  
+        a_1p.reg = _mm_loaddup_pd((double *) (packed_a_ptr + 1));
+        a_2p.reg = _mm_loaddup_pd((double *) (packed_a_ptr + 2));
+        a_3p.reg = _mm_loaddup_pd((double *) (packed_a_ptr + 3));
+        packed_a_ptr += 4;
 
         b_p0_p1.reg = _mm_load_pd((double *) b_p0_pntr);
         b_p2_p3.reg = _mm_load_pd((double *) b_p2_pntr);
@@ -134,6 +133,230 @@ void MMult_optim7_1_packA(int m, int k, int n, double *A, double *B, double *C, 
   }  
 }
 
+// PackB based on MMult_optim7_1
+void MMult_optim7_1_packB(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
+{
+  // printf("size %d, %d, %d\n", m, k, n);
+  v2d_regv c_00_01, c_10_11, c_20_21, c_30_31,
+           c_02_03, c_12_13, c_22_23, c_32_33;
+  v2d_regv b_p0_p1, b_p2_p3;
+  v2d_regv a_0p, a_1p, a_2p, a_3p;  // the single value will be duplicated to be a vector
+
+  double *b_p0_pntr, *b_p1_pntr, *b_p2_pntr, *b_p3_pntr;
+
+  // double *packedA = (double*) malloc(m * k * sizeof(double));
+  // double *packedA_ptr = packedA;
+  // for (int i = 0; i < m; i += 4) {
+  //   for (int p = 0; p < k; ++p) {
+  //     *packedA_ptr = A(i, p);
+  //     *(packedA_ptr + 1) = A(i + 1, p);
+  //     *(packedA_ptr + 2) = A(i + 2, p);
+  //     *(packedA_ptr + 3) = A(i + 3, p);
+
+  //     packedA_ptr += 4;
+  //   }
+  // }
+
+  double *packedB = (double*) malloc(k * n * sizeof(double));
+  double *packedB_ptr = packedB;
+  for (int j = 0; j < n; j += 4) {
+    for (int p = 0; p < k; ++p) {
+      *packedB_ptr = B(p, j);
+      *(packedB_ptr + 1) = B(p, j + 1);
+      *(packedB_ptr + 2) = B(p, j + 2);
+      *(packedB_ptr + 3) = B(p, j + 3);
+
+      packedB_ptr += 4;
+    }
+  }
+
+  // print_matrix(m, k, A, lda);
+
+  for (int j = 0; j < n; j += 4){
+    for (int i = 0; i < m; i += 4){
+      c_00_01.reg = _mm_setzero_pd();
+      c_10_11.reg = _mm_setzero_pd();
+      c_20_21.reg = _mm_setzero_pd();
+      c_30_31.reg = _mm_setzero_pd();
+      c_02_03.reg = _mm_setzero_pd();
+      c_12_13.reg = _mm_setzero_pd();
+      c_22_23.reg = _mm_setzero_pd();
+      c_32_33.reg = _mm_setzero_pd();
+
+
+      // b_p0_pntr = &B(0, j);
+      // // b_p1_pntr = &B(0, j + 1);
+      // b_p2_pntr = &B(0, j + 2); 
+      // b_p3_pntr = &B(0, j + 3);
+
+      // avoid to repeat packing A
+      // if (j == 0) {
+      //   packA(k, &A(i, 0), &packedA[i * k], lda, 4);
+      // // packA(k, &A(i, 0), packedA, lda, 4);
+      // }
+      // printf("packed done, packed sample %f\n", packedA[0]);
+      double *packed_b_ptr = &packedB[k * j];    // B(0, j)
+      for (int p = 0; p < k; ++p){
+        a_0p.reg = _mm_loaddup_pd((double *) &A(i, p));
+        a_1p.reg = _mm_loaddup_pd((double *) &A(i + 1, p));
+        a_2p.reg = _mm_loaddup_pd((double *) &A(i + 2, p));
+        a_3p.reg = _mm_loaddup_pd((double *) &A(i + 3, p));
+
+        // b_p0_p1.reg = _mm_load_pd((double *) b_p0_pntr);
+        // b_p2_p3.reg = _mm_load_pd((double *) b_p2_pntr);
+
+        b_p0_p1.reg = _mm_load_pd((double *) packed_b_ptr);
+        b_p2_p3.reg = _mm_load_pd((double *) (packed_b_ptr + 2));
+        packed_b_ptr += 4;
+
+        /* First colomns and second colomns */
+        c_00_01.reg += a_0p.reg * b_p0_p1.reg;
+        c_10_11.reg += a_1p.reg * b_p0_p1.reg;
+
+        c_20_21.reg += a_2p.reg * b_p0_p1.reg;
+        c_30_31.reg += a_3p.reg * b_p0_p1.reg;
+
+        /* Third colomns fourth colomns */
+        c_02_03.reg += a_0p.reg * b_p2_p3.reg;
+        c_12_13.reg += a_1p.reg * b_p2_p3.reg;
+
+        c_22_23.reg += a_2p.reg * b_p2_p3.reg;
+        c_32_33.reg += a_3p.reg * b_p2_p3.reg;
+
+        // // update b_px_pntr
+        // b_p0_pntr += ldb;
+        // b_p1_pntr += ldb;
+        // b_p2_pntr += ldb; 
+        // b_p3_pntr += ldb;
+        // printf("p%d\n", p);
+
+      }
+      // printf("cece %f", 1000);
+      
+
+      C(i, j) += c_00_01.value[0];     C(i, j+1) += c_00_01.value[1];     C(i, j+2) += c_02_03.value[0];     C(i, j+3) += c_02_03.value[1];
+      C(i+1, j) += c_10_11.value[0];   C(i+1, j+1) += c_10_11.value[1];   C(i+1, j+2) += c_12_13.value[0];   C(i+1, j+3) += c_12_13.value[1];
+      C(i+2, j) += c_20_21.value[0];   C(i+2, j+1) += c_20_21.value[1];   C(i+2, j+2) += c_22_23.value[0];   C(i+2, j+3) += c_22_23.value[1];
+      C(i+3, j) += c_30_31.value[0];   C(i+3, j+1) += c_30_31.value[1];   C(i+3, j+2) += c_32_33.value[0];   C(i+3, j+3) += c_32_33.value[1];
+    }
+  }  
+}
+
+// PackA and PackB based on MMult_optim7_1
+void MMult_optim7_1_packAB(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
+{
+  // printf("size %d, %d, %d\n", m, k, n);
+  v2d_regv c_00_01, c_10_11, c_20_21, c_30_31,
+           c_02_03, c_12_13, c_22_23, c_32_33;
+  v2d_regv b_p0_p1, b_p2_p3;
+  v2d_regv a_0p, a_1p, a_2p, a_3p;  // the single value will be duplicated to be a vector
+
+  double *b_p0_pntr, *b_p1_pntr, *b_p2_pntr, *b_p3_pntr;
+
+  double *packedA = (double*) malloc(m * k * sizeof(double));
+  double *packedA_ptr = packedA;
+  for (int i = 0; i < m; i += 4) {
+    for (int p = 0; p < k; ++p) {
+      *packedA_ptr = A(i, p);   // ATTENTION!: not A[i, p]
+      *(packedA_ptr + 1) = A(i + 1, p);
+      *(packedA_ptr + 2) = A(i + 2, p);
+      *(packedA_ptr + 3) = A(i + 3, p);
+
+      packedA_ptr += 4;
+    }
+  }
+
+  double *packedB = (double*) malloc(k * n * sizeof(double));
+  double *packedB_ptr = packedB;
+  for (int j = 0; j < n; j += 4) {
+    for (int p = 0; p < k; ++p) {
+      *packedB_ptr = B(p, j);
+      *(packedB_ptr + 1) = B(p, j + 1);
+      *(packedB_ptr + 2) = B(p, j + 2);
+      *(packedB_ptr + 3) = B(p, j + 3);
+
+      packedB_ptr += 4;
+    }
+  }
+
+  // print_matrix(m, k, A, lda);
+
+  for (int j = 0; j < n; j += 4){
+    for (int i = 0; i < m; i += 4){
+      c_00_01.reg = _mm_setzero_pd();
+      c_10_11.reg = _mm_setzero_pd();
+      c_20_21.reg = _mm_setzero_pd();
+      c_30_31.reg = _mm_setzero_pd();
+      c_02_03.reg = _mm_setzero_pd();
+      c_12_13.reg = _mm_setzero_pd();
+      c_22_23.reg = _mm_setzero_pd();
+      c_32_33.reg = _mm_setzero_pd();
+
+
+      // b_p0_pntr = &B(0, j);
+      // // b_p1_pntr = &B(0, j + 1);
+      // b_p2_pntr = &B(0, j + 2); 
+      // b_p3_pntr = &B(0, j + 3);
+
+      // avoid to repeat packing A
+      // if (j == 0) {
+      //   packA(k, &A(i, 0), &packedA[i * k], lda, 4);
+      // // packA(k, &A(i, 0), packedA, lda, 4);
+      // }
+      // printf("packed done, packed sample %f\n", packedA[0]);
+      double *packed_a_ptr = &packedA[i * k];  // A(i 0)
+      double *packed_b_ptr = &packedB[k * j];    // B(0, j)
+
+      for (int p = 0; p < k; ++p){
+        // a_0p.reg = _mm_loaddup_pd((double *) &A(i, p));
+        // a_1p.reg = _mm_loaddup_pd((double *) &A(i + 1, p));
+        // a_2p.reg = _mm_loaddup_pd((double *) &A(i + 2, p));
+        // a_3p.reg = _mm_loaddup_pd((double *) &A(i + 3, p));
+
+        a_0p.reg = _mm_loaddup_pd((double *) packed_a_ptr);  
+        a_1p.reg = _mm_loaddup_pd((double *) (packed_a_ptr + 1));
+        a_2p.reg = _mm_loaddup_pd((double *) (packed_a_ptr + 2));
+        a_3p.reg = _mm_loaddup_pd((double *) (packed_a_ptr + 3));
+        packed_a_ptr += 4;
+
+        b_p0_p1.reg = _mm_load_pd((double *) packed_b_ptr);
+        b_p2_p3.reg = _mm_load_pd((double *) (packed_b_ptr + 2));
+        packed_b_ptr += 4;
+
+        /* First colomns and second colomns */
+        c_00_01.reg += a_0p.reg * b_p0_p1.reg;
+        c_10_11.reg += a_1p.reg * b_p0_p1.reg;
+
+        c_20_21.reg += a_2p.reg * b_p0_p1.reg;
+        c_30_31.reg += a_3p.reg * b_p0_p1.reg;
+
+        /* Third colomns fourth colomns */
+        c_02_03.reg += a_0p.reg * b_p2_p3.reg;
+        c_12_13.reg += a_1p.reg * b_p2_p3.reg;
+
+        c_22_23.reg += a_2p.reg * b_p2_p3.reg;
+        c_32_33.reg += a_3p.reg * b_p2_p3.reg;
+
+        // // update b_px_pntr
+        // b_p0_pntr += ldb;
+        // b_p1_pntr += ldb;
+        // b_p2_pntr += ldb; 
+        // b_p3_pntr += ldb;
+        // printf("p%d\n", p);
+
+      }
+      // printf("cece %f", 1000);
+      
+
+      C(i, j) += c_00_01.value[0];     C(i, j+1) += c_00_01.value[1];     C(i, j+2) += c_02_03.value[0];     C(i, j+3) += c_02_03.value[1];
+      C(i+1, j) += c_10_11.value[0];   C(i+1, j+1) += c_10_11.value[1];   C(i+1, j+2) += c_12_13.value[0];   C(i+1, j+3) += c_12_13.value[1];
+      C(i+2, j) += c_20_21.value[0];   C(i+2, j+1) += c_20_21.value[1];   C(i+2, j+2) += c_22_23.value[0];   C(i+2, j+3) += c_22_23.value[1];
+      C(i+3, j) += c_30_31.value[0];   C(i+3, j+1) += c_30_31.value[1];   C(i+3, j+2) += c_32_33.value[0];   C(i+3, j+3) += c_32_33.value[1];
+    }
+  }  
+}
+
+
 // use more flexible block size for m, n and k, seperately
 void MMult_optim9_1(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
 {    
@@ -146,6 +369,38 @@ void MMult_optim9_1(int m, int k, int n, double *A, double *B, double *C, int ld
         int nSize = MIN(nBlockSize, n - nBlockStart);
       //   MMult_base(blockSize, blockSize, blockSize, &A(mBlockStart, kBlockStart), &B(kBlockStart, nBlockStart), &C(mBlockStart, nBlockStart), lda, ldb, ldc);
         MMult_optim7_1_packA(mSize, kSize, nSize, &A(mBlockStart, kBlockStart), &B(kBlockStart, nBlockStart), &C(mBlockStart, nBlockStart), lda, ldb, ldc);
+      }
+    }
+  }
+}
+
+void MMult_optim9_2(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
+{    
+  for (int mBlockStart = 0; mBlockStart < m; mBlockStart += mBlockSize) {
+    int mSize = MIN(mBlockSize, m - mBlockStart);
+    for (int kBlockStart = 0; kBlockStart < k; kBlockStart += kBlockSize) {
+      int kSize = MIN(kBlockSize, k - kBlockStart);   // in case the left k dimension size smaller than kBlockSize
+
+      for (int nBlockStart = 0; nBlockStart < n; nBlockStart += nBlockSize) {
+        int nSize = MIN(nBlockSize, n - nBlockStart);
+      //   MMult_base(blockSize, blockSize, blockSize, &A(mBlockStart, kBlockStart), &B(kBlockStart, nBlockStart), &C(mBlockStart, nBlockStart), lda, ldb, ldc);
+        MMult_optim7_1_packB(mSize, kSize, nSize, &A(mBlockStart, kBlockStart), &B(kBlockStart, nBlockStart), &C(mBlockStart, nBlockStart), lda, ldb, ldc);
+      }
+    }
+  }
+}
+
+void MMult_optim9_3(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
+{    
+  for (int mBlockStart = 0; mBlockStart < m; mBlockStart += mBlockSize) {
+    int mSize = MIN(mBlockSize, m - mBlockStart);
+    for (int kBlockStart = 0; kBlockStart < k; kBlockStart += kBlockSize) {
+      int kSize = MIN(kBlockSize, k - kBlockStart);   // in case the left k dimension size smaller than kBlockSize
+
+      for (int nBlockStart = 0; nBlockStart < n; nBlockStart += nBlockSize) {
+        int nSize = MIN(nBlockSize, n - nBlockStart);
+      //   MMult_base(blockSize, blockSize, blockSize, &A(mBlockStart, kBlockStart), &B(kBlockStart, nBlockStart), &C(mBlockStart, nBlockStart), lda, ldb, ldc);
+        MMult_optim7_1_packAB(mSize, kSize, nSize, &A(mBlockStart, kBlockStart), &B(kBlockStart, nBlockStart), &C(mBlockStart, nBlockStart), lda, ldb, ldc);
       }
     }
   }
