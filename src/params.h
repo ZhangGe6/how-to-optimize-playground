@@ -23,3 +23,6 @@
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
 #define blockSize 40
+#define mBlockSize 40
+#define kBlockSize 40
+#define nBlockSize 40

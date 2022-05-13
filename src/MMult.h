@@ -59,9 +59,10 @@ void MMult_optim8_2(int m, int k, int n, double *A, double *B, double *C, int ld
 void MMult_optim8_3(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc);
 void MMult_optim8_4(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc);
 void MMult_optim8_5(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc);
+void MMult_optim8_5_1(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc);
 void MMult_optim8_6(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc);
 void MMult_optim8_7(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc);
-void MMult_optim8_5_1(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc);
+void MMult_optim8_8(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc);
 
 // start use packing
 void MMult_optim9_1(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc);

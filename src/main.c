@@ -6,7 +6,7 @@
 int main() {
     FILE *fptr;
     // fptr = fopen("../res/MMul_base.txt","w");
-    fptr = fopen("../res/MMul_optim9_9.txt", "w");
+    fptr = fopen("../res/MMul_optim9_1.txt", "w");
     if(fptr == NULL)
     {
         printf("Error!");   
@@ -92,8 +92,9 @@ int main() {
             // MMult_optim8_6(m, k, n, A, B, C_optim, lda, ldb, ldc);
             // MMult_optim8_7(m, k, n, A, B, C_optim, lda, ldb, ldc);
             // MMult_optim8_5_1(m, k, n, A, B, C_optim, lda, ldb, ldc);
+            // MMult_optim8_8(m, k, n, A, B, C_optim, lda, ldb, ldc);
 
-            // MMult_optim9_1(m, k, n, A, B, C_optim, lda, ldb, ldc);
+            MMult_optim9_1(m, k, n, A, B, C_optim, lda, ldb, ldc);
             // MMult_optim9_2(m, k, n, A, B, C_optim, lda, ldb, ldc);
             // MMult_optim9_3(m, k, n, A, B, C_optim, lda, ldb, ldc);
             // MMult_optim9_4(m, k, n, A, B, C_optim, lda, ldb, ldc);
@@ -101,7 +102,7 @@ int main() {
             // MMult_optim9_7(m, k, n, A, B, C_optim, lda, ldb, ldc);
             // MMult_optim9_8(m, k, n, A, B, C_optim, lda, ldb, ldc);
             // MMult_optim9_9(m, k, n, A, B, C_optim, lda, ldb, ldc);
-            MMult_optim9_9(m, k, n, A, B, C_optim, lda, ldb, ldc);
+            // MMult_optim9_9(m, k, n, A, B, C_optim, lda, ldb, ldc);
             // MMult_optim9_10(m, k, n, A, B, C_optim, lda, ldb, ldc);
 
 
@@ -115,10 +116,10 @@ int main() {
         printf( "%d %f %f \n", msize, gflops / time_best, max_diff);
         fprintf(fptr,"%d %f %f \n", msize, gflops / time_best, max_diff);
 
-        free(A);
-        free(B);
-        free(C_base);
-        free(C_optim);
+        // free(A);
+        // free(B);
+        // free(C_base);
+        // free(C_optim);
     }
     fclose(fptr); 
 }

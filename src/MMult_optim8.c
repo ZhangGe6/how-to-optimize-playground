@@ -139,3 +139,21 @@ void MMult_optim8_7(int m, int k, int n, double *A, double *B, double *C, int ld
     }
   }
 }
+
+// use more flexible block size for m, n and k, seperately
+// int mBlockSize = 40, kBlockSize = 40, nBlockSize = 40;
+void MMult_optim8_8(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
+{    
+  for (int mBlockStart = 0; mBlockStart < m; mBlockStart += mBlockSize) {
+    int mSize = MIN(mBlockSize, m - mBlockStart);
+    for (int kBlockStart = 0; kBlockStart < k; kBlockStart += kBlockSize) {
+      int kSize = MIN(kBlockSize, k - kBlockStart);   // in case the left k dimension size smaller than kBlockSize
+
+      for (int nBlockStart = 0; nBlockStart < n; nBlockStart += nBlockSize) {
+        int nSize = MIN(nBlockSize, n - nBlockStart);
+      //   MMult_base(blockSize, blockSize, blockSize, &A(mBlockStart, kBlockStart), &B(kBlockStart, nBlockStart), &C(mBlockStart, nBlockStart), lda, ldb, ldc);
+        MMult_optim7_1(mSize, kSize, nSize, &A(mBlockStart, kBlockStart), &B(kBlockStart, nBlockStart), &C(mBlockStart, nBlockStart), lda, ldb, ldc);
+      }
+    }
+  }
+}
