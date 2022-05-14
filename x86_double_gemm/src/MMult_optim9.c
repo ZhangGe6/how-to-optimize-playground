@@ -47,16 +47,34 @@ void MMult_optim7_1_packA(int m, int k, int n, double *A, double *B, double *C, 
 
   double *packedA = (double*) malloc(m * k * sizeof(double));
   double *packedA_ptr = packedA;
-  for (int i = 0; i < m; i += 4) {
-    for (int p = 0; p < k; ++p) {
-      *packedA_ptr = A(i, p);   // ATTENTION!: not A[i, p]
-      *(packedA_ptr + 1) = A(i + 1, p);
-      *(packedA_ptr + 2) = A(i + 2, p);
-      *(packedA_ptr + 3) = A(i + 3, p);
+  // This type of packing is very time-costful
+  // for (int i = 0; i < m; i += 4) {
+  //   for (int p = 0; p < k; ++p) {
+  //     *packedA_ptr = A(i, p);   // ATTENTION!: not A[i, p]
+  //     *(packedA_ptr + 1) = A(i + 1, p);
+  //     *(packedA_ptr + 2) = A(i + 2, p);
+  //     *(packedA_ptr + 3) = A(i + 3, p);
 
-      packedA_ptr += 4;
+  //     packedA_ptr += 4;
+  //   }
+  // }
+
+  // No speedup
+  double *a_ip, *a_i1_p, *a_i2_p, *a_i3_p;
+  for (int i = 0; i < m; i += 4) {
+    a_ip = &A(i, 0);        // ATTENTION!: not A[i, p]
+    a_i1_p = &A(i + 1, 0), 
+    a_i2_p = &A(i + 2, 0), 
+    a_i3_p = &A(i + 3, 0);
+
+    for (int p = 0; p < k; ++p) {
+      *(packedA_ptr++) = *(a_ip++);
+      *(packedA_ptr++) = *(a_i1_p++);
+      *(packedA_ptr++) = *(a_i2_p++);
+      *(packedA_ptr++) = *(a_i3_p++);
     }
   }
+
 
 
   for (int i = 0; i < m; i += 4){
@@ -144,31 +162,48 @@ void MMult_optim7_1_packB(int m, int k, int n, double *A, double *B, double *C, 
 
   double *b_p0_pntr, *b_p1_pntr, *b_p2_pntr, *b_p3_pntr;
 
-  // double *packedA = (double*) malloc(m * k * sizeof(double));
-  // double *packedA_ptr = packedA;
-  // for (int i = 0; i < m; i += 4) {
+  // double *packedB = (double*) malloc(k * n * sizeof(double));
+  // double *packedB_ptr = packedB;
+  // for (int j = 0; j < n; j += 4) {
   //   for (int p = 0; p < k; ++p) {
-  //     *packedA_ptr = A(i, p);
-  //     *(packedA_ptr + 1) = A(i + 1, p);
-  //     *(packedA_ptr + 2) = A(i + 2, p);
-  //     *(packedA_ptr + 3) = A(i + 3, p);
+  //     *packedB_ptr = B(p, j);
+  //     *(packedB_ptr + 1) = B(p, j + 1);
+  //     *(packedB_ptr + 2) = B(p, j + 2);
+  //     *(packedB_ptr + 3) = B(p, j + 3);
 
-  //     packedA_ptr += 4;
+  //     packedB_ptr += 4;
   //   }
   // }
 
+  // No speedup too
   double *packedB = (double*) malloc(k * n * sizeof(double));
   double *packedB_ptr = packedB;
+  double *b_p_j;
   for (int j = 0; j < n; j += 4) {
     for (int p = 0; p < k; ++p) {
-      *packedB_ptr = B(p, j);
-      *(packedB_ptr + 1) = B(p, j + 1);
-      *(packedB_ptr + 2) = B(p, j + 2);
-      *(packedB_ptr + 3) = B(p, j + 3);
-
-      packedB_ptr += 4;
+      b_p_j = &B(p, j);
+      
+      *(packedB_ptr++) = *(b_p_j + 1);
+      *(packedB_ptr++) = *(b_p_j + 2);
+      *(packedB_ptr++) = *(b_p_j + 3);
+      *(packedB_ptr++) = *(b_p_j + 4);
     }
   }
+
+  // A fake packing that demonstrates packing is time-costful
+  // double *packedB_t = (double*) malloc(k * n * sizeof(double));
+  // double *packedB_ptr_t = packedB_t;
+  // double *b_p_j_t;
+  // for (int j = 0; j < n; j += 4) {
+  //   for (int p = 0; p < k; ++p) {
+  //     b_p_j_t = &B(p, j);
+      
+  //     *(packedB_ptr_t++) = *(b_p_j_t + 1);
+  //     *(packedB_ptr_t++) = *(b_p_j_t + 2);
+  //     *(packedB_ptr_t++) = *(b_p_j_t + 3);
+  //     *(packedB_ptr_t++) = *(b_p_j_t + 4);
+  //   }
+  // }
 
   // print_matrix(m, k, A, lda);
 
