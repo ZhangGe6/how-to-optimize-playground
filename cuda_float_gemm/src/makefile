@@ -1,0 +1,36 @@
+
+
+CC         := nvcc
+CFLAGS     := -std=c++11 -O2 -g
+LDFLAGS    := -lm -lcublas -lopenblas
+GENCODE_FLAGS=-gencode=arch=compute_52,code=sm_52 \
+    -gencode=arch=compute_60,code=sm_60 \
+    -gencode=arch=compute_61,code=sm_61 \
+    -gencode=arch=compute_70,code=sm_70 \
+    -gencode=arch=compute_75,code=sm_75 \
+    -gencode=arch=compute_60,code=compute_60
+
+MulMethods := $(patsubst %.cu, %.o, $(wildcard MMult*.cu))
+OBJS  := main.o utils.o $(MulMethods)
+
+%.o: %.cpp
+	$(CC) $(CFLAGS) $(GENCODE_FLAGS)  -c $< -o $@
+
+%.o: %.cu
+	$(CC) $(CFLAGS) $(GENCODE_FLAGS)  -c $< -o $@
+
+all:
+	make init
+	echo $(MulMethods)
+	make test_MMult.x
+	make clean
+
+test_MMult.x: $(OBJS) params.h
+	$(CC) $(OBJS) $(LDFLAGS) $(BLAS_LIB) -o $@ 
+
+clean:
+	rm -f *.o
+
+init:
+	rm -f test_MMult.x
+	rm -f *.o
