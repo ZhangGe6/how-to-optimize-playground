@@ -15,7 +15,7 @@ void random_matrix( int m, int n, float *mat, int ldm);
 void zero_matrix( int m, int n, float *mat, int ldm);
 void print_matrix(int m, int n, float *mat, int ldm);
 float compare_matrix(int m, int n, float *mat1, float *mat2, int ldm);
-float dclock();
+void print_gpu_info();
 
 
 #include <mmintrin.h>

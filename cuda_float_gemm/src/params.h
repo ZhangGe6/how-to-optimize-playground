@@ -11,6 +11,10 @@
 #define mat(i, j) mat[(i)*(ldm) + (j)]
 #define mat2(i, j) mat2[(i)*(ldm) + (j)]
 
+#define d_A(x, y) d_A[(y)*(lda) + x]
+#define d_B(x, y) d_B[(y)*(ldb) + x]
+#define d_C(x, y) d_C[(y)*(ldc) + x]
+
 // Note that the brackets in A[_(i)_*lda + j] REALLY matters!
 // otherwise when you call A[p+1, j], you will get A[p+1*lda, j], rather than A[(p+1)*lda, j]!!!
 

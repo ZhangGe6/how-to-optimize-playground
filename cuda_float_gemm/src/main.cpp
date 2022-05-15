@@ -5,6 +5,8 @@
 #include "MMult.h"
 
 int main() {
+    print_gpu_info();
+
     FILE *fptr;
     // fptr = fopen("../res/MMul_base.txt","w");
     fptr = fopen("../res/MMul_optim9_1.txt", "w");
@@ -26,6 +28,9 @@ int main() {
         // https://developer.nvidia.com/blog/how-implement-performance-metrics-cuda-cc/
         cudaEvent_t start, stop;
         cudaEventCreate(&start);  cudaEventCreate(&stop);
+        // https://docs.nvidia.com/cuda/cublas/index.html#cublashandle_t
+        cublasHandle_t handle;
+        cublasCreate(&handle);
         
         // host side
         float *h_A, *h_B, *h_C_base, *h_C_optim;
@@ -52,7 +57,7 @@ int main() {
 
         checkCudaErrors(cudaMemcpy(d_C, h_C_base, CSIZE(float), cudaMemcpyHostToDevice));   
         // cublas baseline for result verification
-        MMult_benchmark(m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
+        MMult_benchmark(handle, m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
         checkCudaErrors(cudaMemcpy(h_C_base, d_C, CSIZE(float), cudaMemcpyDeviceToHost));
         // print_matrix(m, n, h_C_base, ldc);
 
@@ -60,9 +65,14 @@ int main() {
         for (int repeat = 0; repeat < repeat_times; ++repeat) {
             zero_matrix(m, n, h_C_optim, ldc);  // because we are doing an [inplace] adding operation on C_optim, so we need to initialize C_optim every iter
             checkCudaErrors(cudaMemcpy(d_C, h_C_optim, CSIZE(float), cudaMemcpyHostToDevice));  
-
             cudaEventRecord(start);
-            MMult_benchmark(m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
+
+            // MMult_benchmark(handle, m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
+            MMult_base(handle, m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
+
+
+
+
             cudaEventRecord(stop);
 
             checkCudaErrors(cudaMemcpy(h_C_optim, d_C, CSIZE(float), cudaMemcpyDeviceToHost));

@@ -54,20 +54,18 @@ float compare_matrix(int m, int n, float *mat, float *mat2, int ldm){
     return max_diff;
 }
 
-/* Adapted from the bl2_clock() routine in the BLIS library */
-static float gtod_ref_time_sec = 0.0;
-float dclock()
-{
-        float the_time, norm_sec;
-        struct timeval tv;
-
-        gettimeofday( &tv, NULL );
-
-        if ( gtod_ref_time_sec == 0.0 )
-                gtod_ref_time_sec = ( float ) tv.tv_sec;
-
-        norm_sec = ( float ) tv.tv_sec - gtod_ref_time_sec;
-        the_time = norm_sec + tv.tv_usec * 1.0e-6;
-
-        return the_time;
+// https://github1s.com/tpoisonooo/how-to-optimize-gemm/blob/HEAD/cuda/test_MMult.cpp
+void print_gpu_info() {
+    // print gpu info
+    cudaDeviceProp deviceProp;
+    int devID = 0;
+    checkCudaErrors(cudaSetDevice(devID));
+    auto error = cudaGetDeviceProperties(&deviceProp, devID);
+    if (error != cudaSuccess) {
+        printf("cudaGetDeviceProperties returned error code %d, line(%d)\n", error,
+            __LINE__);
+        exit(EXIT_FAILURE);
+    }
+    printf("\nGPU Device %d: \"%s\" with compute capability %d.%d\n\n", devID,
+            deviceProp.name, deviceProp.major, deviceProp.minor);
 }
