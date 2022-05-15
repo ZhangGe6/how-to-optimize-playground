@@ -14,8 +14,8 @@ int main() {
         exit(1);             
     }
 
-    // for (int msize = 40; msize <= 800; msize += 40){   
-    for (int msize = 4; msize <= 4; msize += 40){  
+    for (int msize = 1000; msize <= 6000; msize += 100){   
+    // for (int msize = 4; msize <= 4; msize += 40){  
         int m = msize, k = msize, n = msize;
         int lda = k, ldb = n, ldc = n;
 
@@ -23,6 +23,9 @@ int main() {
         See https://sahnimanas.github.io/post/anatomy-of-a-high-performance-convolution/ for more details*/
         float gflops = 2.0 * m * n * k * 1.0e-09;
         float time_best = DBL_MAX;
+        // https://developer.nvidia.com/blog/how-implement-performance-metrics-cuda-cc/
+        cudaEvent_t start, stop;
+        cudaEventCreate(&start);  cudaEventCreate(&stop);
         
         // host side
         float *h_A, *h_B, *h_C_base, *h_C_optim;
@@ -51,28 +54,31 @@ int main() {
         // cublas baseline for result verification
         MMult_benchmark(m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
         checkCudaErrors(cudaMemcpy(h_C_base, d_C, CSIZE(float), cudaMemcpyDeviceToHost));
-        print_matrix(m, n, h_C_base, ldc);
+        // print_matrix(m, n, h_C_base, ldc);
 
         int repeat_times = 5;   // TODO: when repeat_times is lager than 1, the max_diff is wierd. -> I know, 
         for (int repeat = 0; repeat < repeat_times; ++repeat) {
             zero_matrix(m, n, h_C_optim, ldc);  // because we are doing an [inplace] adding operation on C_optim, so we need to initialize C_optim every iter
             checkCudaErrors(cudaMemcpy(d_C, h_C_optim, CSIZE(float), cudaMemcpyHostToDevice));  
-            float time_s = dclock();
 
+            cudaEventRecord(start);
             MMult_benchmark(m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
+            cudaEventRecord(stop);
 
             checkCudaErrors(cudaMemcpy(h_C_optim, d_C, CSIZE(float), cudaMemcpyDeviceToHost));
-
-            
-            // time_best = MIN(time_best, (dclock() - time_s));
+            cudaEventSynchronize(stop);
+            float milliseconds = 0;
+            cudaEventElapsedTime(&milliseconds, start, stop);
+            time_best = MIN(time_best, milliseconds / 1000);
         }
+        // printf("time best %f\n", time_best);
         // print_matrix(m, n, C_optim, ldc);
         // print_matrix(m, n, C_base, ldc);
 
         float max_diff = compare_matrix(m, n, h_C_base, h_C_optim, ldc);
         assert(max_diff == 0);
-        // printf( "%d %f %f \n", msize, gflops / time_best, max_diff);
-        // fprintf(fptr,"%d %f %f \n", msize, gflops / time_best, max_diff);
+        printf( "%d %f %f \n", msize, gflops / time_best, max_diff);
+        fprintf(fptr,"%d %f %f \n", msize, gflops / time_best, max_diff);
 
         // free memory
         cudaFree(d_A);
