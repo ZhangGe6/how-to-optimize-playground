@@ -10,22 +10,27 @@ GENCODE_FLAGS=-gencode=arch=compute_52,code=sm_52 \
     -gencode=arch=compute_75,code=sm_75 \
     -gencode=arch=compute_60,code=compute_60
 
-BUILD=../build
-MulMethod_OBJs := $(addprefix $(BUILD)/, $(patsubst %.cu, %.o, $(wildcard MMult*.cu)))
+MulMethods := $(patsubst %.cu, %.o, $(wildcard MMult*.cu))
+OBJS  := main.o utils.o $(MulMethods)
 
-$(BUILD)/%.o: %.cpp
-	$(CC) $(CFLAGS) $(GENCODE_FLAGS)  -c $< -o $(BUILD)/$@
+%.o: %.cpp
+	$(CC) $(CFLAGS) $(GENCODE_FLAGS)  -c $< -o $@
 
-$(BUILD)/%.o: %.cu
-	$(CC) $(CFLAGS) $(GENCODE_FLAGS)  -c $< -o $(BUILD)/$@
+%.o: %.cu
+	$(CC) $(CFLAGS) $(GENCODE_FLAGS)  -c $< -o $@
 
 all:
-	echo $(MulMethod_OBJs)
-	rm -f test_MMult.x
+	make init
+	echo $(MulMethods)
 	make test_MMult.x
+	# make clean
 
-test_MMult.x: $(BUILD)/main.o  $(BUILD)/utils.o $(MulMethod_OBJs)
-	$(CC) $(LDFLAGS) $(BLAS_LIB) $^ -o $@ 
+test_MMult.x: $(OBJS) params.h
+	$(CC) $(OBJS) $(LDFLAGS) $(BLAS_LIB) -o $@ 
 
 clean:
 	rm -f *.o
+
+init:
+	rm -f test_MMult.x
+	# rm -f *.o

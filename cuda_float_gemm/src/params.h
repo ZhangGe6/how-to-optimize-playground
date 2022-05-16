@@ -11,13 +11,13 @@
 #define mat(i, j) mat[(i)*(ldm) + (j)]
 #define mat2(i, j) mat2[(i)*(ldm) + (j)]
 
-#define d_A(x, y) d_A[(y)*(lda) + x]
-#define d_B(x, y) d_B[(y)*(ldb) + x]
-#define d_C(x, y) d_C[(y)*(ldc) + x]
+// #define d_A(x, y) d_A[(y)*(lda) + x]
+// #define d_B(x, y) d_B[(y)*(ldb) + x]
+// #define d_C(x, y) d_C[(y)*(ldc) + x]
 
-// #define A_sub(x, y) A_sub[(y)*(lda) + x]
-// #define B_sub(x, y) B_sub[(y)*(ldb) + x]
-// #define C_sub(x, y) C_sub[(y)*(ldc) + x]
+#define d_A(row, col) d_A[(row)*(lda) + col]
+#define d_B(row, col) d_B[(row)*(ldb) + col]
+#define d_C(row, col) d_C[(row)*(ldc) + col]
 
 // Note that the brackets in A[_(i)_*lda + j] REALLY matters!
 // otherwise when you call A[p+1, j], you will get A[p+1*lda, j], rather than A[(p+1)*lda, j]!!!

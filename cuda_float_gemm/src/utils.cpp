@@ -1,5 +1,6 @@
 
-// #include <iostream>
+#include <iostream>
+#include <random>
 #include "params.h"
 #include "utils.h"
 
@@ -11,13 +12,16 @@ void allocate_space(int m, int k, int n, float *matA, float *matB, float *matC){
 }
 
 void random_matrix(int m, int n, float *mat, int ldm){
-    float drand48();
+    // https://techiedelight.com/compiler/
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_real_distribution<> dist(1, 10);
 
     for (int i = 0; i < m; ++i){
         for (int j = 0; j < n; ++j)
-            // mat(i, j) = 2.0 * drand48( ) - 1.0;
+            mat(i, j) = dist(gen);
             // mat(i, j) = (float) (i + 1);
-            mat(i, j) = 1;
+            // mat(i, j) = 1;
     }
     // print_matrix(m, n, mat, n);
 }
