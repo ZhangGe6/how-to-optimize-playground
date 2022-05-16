@@ -9,15 +9,14 @@ int main() {
 
     FILE *fptr;
     // fptr = fopen("../res/MMul_base.txt","w");
-    fptr = fopen("../res/MMul_optim9_1.txt", "w");
+    fptr = fopen("../res/MMul_optim1_2.txt", "w");
     if(fptr == NULL)
     {
         printf("Error open result file!");   
         exit(1);             
     }
 
-    for (int msize = 1000; msize <= 6000; msize += 100){   
-    // for (int msize = 4; msize <= 4; msize += 40){  
+    for (int msize = 1024; msize <= 6144; msize += 128){   
         int m = msize, k = msize, n = msize;
         int lda = k, ldb = n, ldc = n;
 
@@ -61,18 +60,17 @@ int main() {
         checkCudaErrors(cudaMemcpy(h_C_base, d_C, CSIZE(float), cudaMemcpyDeviceToHost));
         // print_matrix(m, n, h_C_base, ldc);
 
-        int repeat_times = 5;   // TODO: when repeat_times is lager than 1, the max_diff is wierd. -> I know, 
+        int repeat_times = 2;   // TODO: when repeat_times is lager than 1, the max_diff is wierd. -> I know, 
         for (int repeat = 0; repeat < repeat_times; ++repeat) {
             zero_matrix(m, n, h_C_optim, ldc);  // because we are doing an [inplace] adding operation on C_optim, so we need to initialize C_optim every iter
             checkCudaErrors(cudaMemcpy(d_C, h_C_optim, CSIZE(float), cudaMemcpyHostToDevice));  
             cudaEventRecord(start);
 
             // MMult_benchmark(handle, m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
-            MMult_base(handle, m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
-
-
-
-
+            // MMult_base(handle, m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
+            // MMult_optim1_1(handle, m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
+            MMult_optim1_2(handle, m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
+            
             cudaEventRecord(stop);
 
             checkCudaErrors(cudaMemcpy(h_C_optim, d_C, CSIZE(float), cudaMemcpyDeviceToHost));
@@ -81,6 +79,8 @@ int main() {
             cudaEventElapsedTime(&milliseconds, start, stop);
             time_best = MIN(time_best, milliseconds / 1000);
         }
+        // print_matrix(m, n, h_C_base, ldc);
+        // print_matrix(m, n, h_C_optim, ldc);
         // printf("time best %f\n", time_best);
         // print_matrix(m, n, C_optim, ldc);
         // print_matrix(m, n, C_base, ldc);

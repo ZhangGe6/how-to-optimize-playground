@@ -8,11 +8,10 @@
 __global__ void gemm_base(int m, int k, int n, float *d_A, float *d_B, float *d_C, int lda, int ldb, int ldc) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
+    if (x >= n || y >= m) return;
 
-    if (x < n && y < m) {
-        for (int i = 0; i < k; ++i) {
-            d_C(x, y) += d_A(x, i) * d_B(i, y);
-        }
+    for (int i = 0; i < k; ++i) {
+        d_C(x, y) += d_A(x, i) * d_B(i, y);
     }
 }
 
@@ -20,8 +19,10 @@ __global__ void gemm_base(int m, int k, int n, float *d_A, float *d_B, float *d_
 void MMult_base(cublasHandle_t handle, int m, int k, int n, float *d_A, float *d_B, float *d_C, int lda, int ldb, int ldc) {
 
     int blockSize = 16;
-    dim3 threadsPerBlock(blockSize, blockSize);
-    dim3 numBlocks((m + blockSize - 1) / blockSize, (n + blockSize - 1) / blockSize);
+    dim3 dimBlock(blockSize, blockSize);  // threadsPerBlock
+    dim3 dimGrid((m + blockSize - 1) / blockSize, (n + blockSize - 1) / blockSize);  // numBlocks
 
-    gemm_base<<<numBlocks, threadsPerBlock>>>(m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
+    gemm_base<<<dimGrid, dimBlock>>>(m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
 }
+
+// 这种做法，线程在运算时，每个数据的读和写都直接和global memory进行，有很长的时延

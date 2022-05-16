@@ -15,6 +15,10 @@
 #define d_B(x, y) d_B[(y)*(ldb) + x]
 #define d_C(x, y) d_C[(y)*(ldc) + x]
 
+// #define A_sub(x, y) A_sub[(y)*(lda) + x]
+// #define B_sub(x, y) B_sub[(y)*(ldb) + x]
+// #define C_sub(x, y) C_sub[(y)*(ldc) + x]
+
 // Note that the brackets in A[_(i)_*lda + j] REALLY matters!
 // otherwise when you call A[p+1, j], you will get A[p+1*lda, j], rather than A[(p+1)*lda, j]!!!
 
@@ -32,3 +36,5 @@
 // #define mBlockSize 256
 // #define kBlockSize 128
 // #define nBlockSize 128
+
+// #define BLOCK_SIZE 16
