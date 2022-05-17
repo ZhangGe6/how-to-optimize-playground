@@ -17,7 +17,10 @@ __global__ void gemm_optim2_1(int m, int k, int n, float *d_A, float *d_B, float
     // by accumulating results into C_value
     float C_value = 0;
 
-    for (int tile_k_id = 0; tile_k_id < int(k / BLOCK_SIZE); ++tile_k_id) {  // 各线程依次完成“千层饼”的第tile_k_id层，并叠加
+    // 各线程依次完成“千层饼”的第tile_k_id * BLOCK_SIZE~ tile_k_id * BLOCK_SIZE + BLOCK_SIZE层，并叠加
+    // printf("k %d, BLOCK_SIZE %d\n", k, BLOCK_SIZE);
+    for (int tile_k_id = 0; tile_k_id < int(k / BLOCK_SIZE); ++tile_k_id) {
+        // printf("tile_k_id %d\n", tile_k_id);
         __shared__ float A_shared[BLOCK_SIZE][BLOCK_SIZE];
         __shared__ float B_shared[BLOCK_SIZE][BLOCK_SIZE];
         
@@ -54,8 +57,11 @@ __global__ void gemm_optim2_1(int m, int k, int n, float *d_A, float *d_B, float
 void MMult_optim2_1(cublasHandle_t handle, int m, int k, int n, float *d_A, float *d_B, float *d_C, int lda, int ldb, int ldc) {
 
     const int BLOCK_SIZE = 16;
+    // const int BLOCK_SIZE = 64; // TODO: why 64 here not work? 
     dim3 dimBlock(BLOCK_SIZE, BLOCK_SIZE);
     dim3 dimGrid((m + BLOCK_SIZE - 1) / BLOCK_SIZE, (n + BLOCK_SIZE - 1) / BLOCK_SIZE);
+    // printf("(m + BLOCK_SIZE - 1) / BLOCK_SIZE %d\n", (m + BLOCK_SIZE - 1) / BLOCK_SIZE);
+    // printf("k / BLOCK_SIZE %d\n", k / BLOCK_SIZE);
 
     gemm_optim2_1<BLOCK_SIZE><<<dimGrid, dimBlock>>>(m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
 }

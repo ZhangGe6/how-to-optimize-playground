@@ -4,20 +4,23 @@
 #include "utils.h"
 #include "MMult.h"
 
+
 int main() {
     print_gpu_info();
 
     FILE *fptr;
-    fptr = fopen("../res/MMul_base.txt","w");
-    // fptr = fopen("../res/MMul_optim1_2.txt", "w");
+    // fptr = fopen("../res/MMul_base.txt","w");
+    fptr = fopen("../res/MMul_optim3_2.txt", "w");
     if(fptr == NULL)
     {
         printf("Error open result file!");   
         exit(1);             
     }
 
-    for (int msize = 1024; msize <= 6144; msize += 128){   
+    for (int msize = 1024; msize <= 6144; msize += 128){
+    // for (int msize = 1024; msize <= 1024; msize += 128){         
     // for (int msize = 4; msize <= 4; msize += 4){  
+    // for (int msize = 1260; msize <= 1260; msize += 4){  
         int m = msize, k = msize, n = msize;
         int lda = k, ldb = n, ldc = n;
 
@@ -70,8 +73,10 @@ int main() {
             // MMult_benchmark(handle, m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
             // MMult_base(handle, m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
             // MMult_optim1_1(handle, m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
-            MMult_optim2_1(handle, m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
-            
+            // MMult_optim2_1(handle, m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
+            // MMult_optim3_1(handle, m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
+            MMult_optim3_2(handle, m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
+
             cudaEventRecord(stop);
 
             checkCudaErrors(cudaMemcpy(h_C_optim, d_C, CSIZE(float), cudaMemcpyDeviceToHost));

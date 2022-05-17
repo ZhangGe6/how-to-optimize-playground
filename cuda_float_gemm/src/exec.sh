@@ -1,3 +1,3 @@
 make all
-# ./test_MMult.x
+./test_MMult.x
 # python draw_speed.py

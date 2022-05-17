@@ -20,13 +20,22 @@ __global__ void gemm_optim1_1(int m, int k, int n, float *d_A, float *d_B, float
 }
 
 void MMult_optim1_1(cublasHandle_t handle, int m, int k, int n, float *d_A, float *d_B, float *d_C, int lda, int ldb, int ldc) {
-
+    
     int blockSize = 16;
+    // int blockSize = 64;   // TODO: why 64 here not work? 
     dim3 dimBlock(blockSize, blockSize);
     dim3 dimGrid((m + blockSize - 1) / blockSize, (n + blockSize - 1) / blockSize);
+    // printf("(m + blockSize - 1) / blockSize %d\n", (m + blockSize - 1) / blockSize);
 
     gemm_optim1_1<<<dimGrid, dimBlock>>>(m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
+    // gpuErrchk( cudaPeekAtLastError() );
+    // gpuErrchk( cudaDeviceSynchronize() );
 }
+
+
+
+// debug trick: https://forums.developer.nvidia.com/t/i-cant-not-get-true-answer-at-3d-array-calculation/47165/5
+// cuda-memcheck [executable-name] 
 
 
 

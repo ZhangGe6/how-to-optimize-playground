@@ -77,3 +77,15 @@ static const char *_cuBlasGetErrorEnum(cublasStatus_t error)
     if(e != CUBLAS_STATUS_SUCCESS)	\
         printf ("%s %d CuBlas: %s", __FILE__,  __LINE__, _cuBlasGetErrorEnum(e));		\
 }
+
+
+// https://stackoverflow.com/a/14038590/10096987
+#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
+{
+   if (code != cudaSuccess) 
+   {
+      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+      if (abort) exit(code);
+   }
+}
