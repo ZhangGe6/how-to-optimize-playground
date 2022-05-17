@@ -7,6 +7,7 @@
 
 // https://github1s.com/Cjkkkk/CUDA_gemm/blob/HEAD/src/cuda/dense_legacy.cu#L215-L216
 // every thread compute 4 elements (across 4 consecutive colomns)
+// fairly speedup
 template <int BLOCK_SIZE> 
 __global__ void gemm_optim3_1(int m, int k, int n, float *d_A, float *d_B, float *d_C, int lda, int ldb, int ldc) {
     int row = blockIdx.y * blockDim.y + threadIdx.y;
@@ -78,6 +79,8 @@ void MMult_optim3_1(cublasHandle_t handle, int m, int k, int n, float *d_A, floa
     gemm_optim3_1<BLOCK_SIZE><<<dimGrid, dimBlock>>>(m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
 }
 
+// a large speedup
+// and #pragma unroll really matters here
 template <int BLOCK_SIZE, int ELE_PER_THREAD_ROW, int ELE_PER_THREAD_COL> 
 __global__ void gemm_optim3_2(int m, int k, int n, float *d_A, float *d_B, float *d_C, int lda, int ldb, int ldc) {
     int row = blockIdx.y * blockDim.y + threadIdx.y;
@@ -100,7 +103,9 @@ __global__ void gemm_optim3_2(int m, int k, int n, float *d_A, float *d_B, float
         // Load Asub and Bsub from device memory to shared memory
         // Each thread loads 4 element of each sub-matrix (across 4 strided colomns)
         int row_in_block = threadIdx.y, col_in_block = threadIdx.x;
+        #pragma unroll
         for (int row_offset = 0; row_offset < ELE_PER_THREAD_ROW; ++row_offset) {
+            #pragma unroll
             for (int col_offset = 0; col_offset < ELE_PER_THREAD_COL; ++col_offset) {
                 int row_in_shared = row_in_block * ELE_PER_THREAD_ROW + row_offset;
                 int col_in_shared = col_in_block * ELE_PER_THREAD_COL + col_offset;
@@ -117,11 +122,13 @@ __global__ void gemm_optim3_2(int m, int k, int n, float *d_A, float *d_B, float
 
         // each thread is responsible for an `expanded` area
         // [row_in_block * ELE_PER_THREAD_ROW:(row_in_block + 1) * ELE_PER_THREAD_ROW][col_in_block * ELE_PER_THREAD_COL:(col_in_block + 1) * ELE_PER_THREAD_COL]
+        #pragma unroll
         for (int row_offset = 0; row_offset < ELE_PER_THREAD_ROW; ++row_offset) {
+            #pragma unroll
             for (int col_offset = 0; col_offset < ELE_PER_THREAD_COL; ++col_offset) {
                 int row_in_shared = row_in_block * ELE_PER_THREAD_ROW + row_offset;
                 int col_in_shared = col_in_block * ELE_PER_THREAD_COL + col_offset;
-
+                #pragma unroll
                 for (int i = 0; i < BLOCK_SIZE; ++i) {
                     C_value[row_offset][col_offset] += A_shared[row_in_shared][i] * B_shared[i][col_in_shared];
                 }
@@ -136,7 +143,9 @@ __global__ void gemm_optim3_2(int m, int k, int n, float *d_A, float *d_B, float
     }
 
     // let's comprehend the following code in a global C matrix view 
+    #pragma unroll
     for (int row_offset = 0; row_offset < ELE_PER_THREAD_ROW; ++row_offset) {
+        #pragma unroll
         for (int col_offset = 0; col_offset < ELE_PER_THREAD_COL; ++col_offset) {
             int row_in_C = row * ELE_PER_THREAD_ROW + row_offset;
             int col_in_C = col * ELE_PER_THREAD_COL + col_offset;

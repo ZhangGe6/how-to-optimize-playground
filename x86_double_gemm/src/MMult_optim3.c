@@ -1,7 +1,7 @@
 #include "params.h"
 #include "MMult.h"
 
-// compute 1x4 at a time and thorw away the AddDot() fasion, as https://github.com/flame/how-to-optimize-gemm/wiki/Optimization_1x4_4 suggested
+// compute 1x4 at a time and thorw away the AddDot() fashion, as https://github.com/flame/how-to-optimize-gemm/wiki/Optimization_1x4_4 suggested
 // inline the four separate inner products 
 // No speed boost again
 void MMult_optim3_1(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
