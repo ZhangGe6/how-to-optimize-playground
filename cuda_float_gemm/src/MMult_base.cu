@@ -16,8 +16,6 @@ __global__ void gemm_base(int m, int k, int n, float *d_A, float *d_B, float *d_
 }
 
 
-
-
 void MMult_base(cublasHandle_t handle, int m, int k, int n, float *d_A, float *d_B, float *d_C, int lda, int ldb, int ldc) {
 
     int blockSize = 16;
@@ -28,3 +26,5 @@ void MMult_base(cublasHandle_t handle, int m, int k, int n, float *d_A, float *d
 }
 
 // 这种做法，线程在运算时，每个数据的读和写都直接和global memory进行，有很长的时延
+
+// int iDivUp(int a, int b){ return ((a % b) != 0) ? (a / b + 1) : (a / b); }

@@ -7,7 +7,7 @@ peak_GFlops_ps = 20 # a tempory one here
 
 plt.ylim((0, peak_GFlops_ps))
 plt.xlabel('matirx size')
-plt.ylabel('GFlops per second')
+plt.ylabel('GFlops')
 
 methods = [
         # 'MMul_base',

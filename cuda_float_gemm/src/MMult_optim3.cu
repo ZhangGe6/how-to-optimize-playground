@@ -5,8 +5,8 @@
 // every thread compute more elements
 // How can it speedup: https://cnugteren.github.io/tutorial/pages/page5.html
 
+// every thread compute 4 (consecutive) elements in x dimension, this is a demo
 // https://github1s.com/Cjkkkk/CUDA_gemm/blob/HEAD/src/cuda/dense_legacy.cu#L215-L216
-// every thread compute 4 elements (across 4 consecutive colomns)
 // fairly speedup
 template <int BLOCK_SIZE> 
 __global__ void gemm_optim3_1(int m, int k, int n, float *d_A, float *d_B, float *d_C, int lda, int ldb, int ldc) {
@@ -17,11 +17,12 @@ __global__ void gemm_optim3_1(int m, int k, int n, float *d_A, float *d_B, float
     // Each thread computes 4 element of Csub
     // by accumulating results into C_value
     float C_value[4] = {0, 0, 0, 0};
-
+    
+    __shared__ float A_shared[BLOCK_SIZE][BLOCK_SIZE];
+    __shared__ float B_shared[BLOCK_SIZE][BLOCK_SIZE];
+            
     for (int tile_k_id = 0; tile_k_id < int(k / BLOCK_SIZE); ++tile_k_id) {
-        __shared__ float A_shared[BLOCK_SIZE][BLOCK_SIZE];
-        __shared__ float B_shared[BLOCK_SIZE][BLOCK_SIZE];
-                
+
         // Get sub-(block)-matrix Asub (upper-left corner) of A
         float *Asub = d_A + blockIdx.y * (BLOCK_SIZE * k) + tile_k_id * BLOCK_SIZE;  
         // Get sub-(block)-matrix Bsub (upper-left corner) of B
@@ -47,6 +48,7 @@ __global__ void gemm_optim3_1(int m, int k, int n, float *d_A, float *d_B, float
 
         // Multiply within Asub and Bsub
         // Each thread calculate 4 element of each sub-matrix (1x4 consecutive colomns)
+        #pragma unroll
         for (int i = 0; i < BLOCK_SIZE; ++i) {
             C_value[0] += A_shared[row_in_block][i] * B_shared[i][4 * col_in_block];
             C_value[1] += A_shared[row_in_block][i] * B_shared[i][4 * col_in_block + 1];
@@ -79,15 +81,18 @@ void MMult_optim3_1(cublasHandle_t handle, int m, int k, int n, float *d_A, floa
     gemm_optim3_1<BLOCK_SIZE><<<dimGrid, dimBlock>>>(m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
 }
 
+// every thread compute multiple (consecutive) elements in both x and y dimensions 
 // a large speedup
-// and #pragma unroll really matters here
+// and `#pragma unroll` really matters here
+// About how `#pragma unroll`work, see
+// https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#pragma-unroll
+
 template <int BLOCK_SIZE, int ELE_PER_THREAD_ROW, int ELE_PER_THREAD_COL> 
 __global__ void gemm_optim3_2(int m, int k, int n, float *d_A, float *d_B, float *d_C, int lda, int ldb, int ldc) {
     int row = blockIdx.y * blockDim.y + threadIdx.y;
     int col = blockIdx.x * blockDim.x + threadIdx.x;   // Note `row` and `col` are the index of threads, they are not on pair with the matrix element index in this version
     // if (row >= m || col >= n) return;
 
-    // Each thread computes 4 element of Csub
     // by accumulating results into C_value
     float C_value[ELE_PER_THREAD_ROW][ELE_PER_THREAD_COL] = {0};
 
@@ -102,6 +107,7 @@ __global__ void gemm_optim3_2(int m, int k, int n, float *d_A, float *d_B, float
 
         // Load Asub and Bsub from device memory to shared memory
         // Each thread loads 4 element of each sub-matrix (across 4 strided colomns)
+        // :star: use thread.y, thread.x to map the location of shared memory
         int row_in_block = threadIdx.y, col_in_block = threadIdx.x;
         #pragma unroll
         for (int row_offset = 0; row_offset < ELE_PER_THREAD_ROW; ++row_offset) {
@@ -143,6 +149,7 @@ __global__ void gemm_optim3_2(int m, int k, int n, float *d_A, float *d_B, float
     }
 
     // let's comprehend the following code in a global C matrix view 
+    // :star: use row and col to map the location of global memory
     #pragma unroll
     for (int row_offset = 0; row_offset < ELE_PER_THREAD_ROW; ++row_offset) {
         #pragma unroll
@@ -157,6 +164,11 @@ __global__ void gemm_optim3_2(int m, int k, int n, float *d_A, float *d_B, float
 }
 
 void MMult_optim3_2(cublasHandle_t handle, int m, int k, int n, float *d_A, float *d_B, float *d_C, int lda, int ldb, int ldc) {
+
+    // params really matters:
+    // BLOCK_SIZE, ELE_PER_THREAD_ROW, ELE_PER_THREAD_COL = 64, 4, 4 => ~2000GFLOPs
+    // BLOCK_SIZE, ELE_PER_THREAD_ROW, ELE_PER_THREAD_COL = 64, 8, 8 => ~200GFLOPs
+    // BLOCK_SIZE, ELE_PER_THREAD_ROW, ELE_PER_THREAD_COL = 32, 4, 4 => ~1300GFLOPs
 
     // const int BLOCK_SIZE = 16;
     const int BLOCK_SIZE = 64;   // BLOCK_SIZE matters
