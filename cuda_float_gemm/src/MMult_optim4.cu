@@ -36,6 +36,7 @@ __global__ void gemm_optim4_1(int m, int k, int n, float *d_A, float *d_B, float
         // A_shared[row_in_block][4 * col_in_block + 1] = Asub[row_in_block * lda + 4 * col_in_block + 1];
         // A_shared[row_in_block][4 * col_in_block + 2] = Asub[row_in_block * lda + 4 * col_in_block + 2];
         // A_shared[row_in_block][4 * col_in_block + 3] = Asub[row_in_block * lda + 4 * col_in_block + 3];
+        // the amount of loads per thread may be reduced
         reinterpret_cast<float4*>(A_shared + row_in_block * BLOCK_SIZE + 4 * col_in_block)[0] = 
                                                     reinterpret_cast<float4*>(Asub + row_in_block * lda + 4 * col_in_block)[0];
 
@@ -92,7 +93,7 @@ void MMult_optim4_1(cublasHandle_t handle, int m, int k, int n, float *d_A, floa
 
 // use float4 (consecutive) elements in both x and y dimension
 // ELE_PER_THREAD_COL should be 4 in this kernel
-// excelent speedup, too!
+// excellent speedup, too!
 template <int BLOCK_SIZE, int ELE_PER_THREAD_ROW, int ELE_PER_THREAD_COL> 
 __global__ void gemm_optim4_2(int m, int k, int n, float *d_A, float *d_B, float *d_C, int lda, int ldb, int ldc) {
     int row = blockIdx.y * blockDim.y + threadIdx.y;
