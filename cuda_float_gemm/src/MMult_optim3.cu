@@ -184,33 +184,19 @@ void MMult_optim3_2(cublasHandle_t handle, int m, int k, int n, float *d_A, floa
     // gpuErrchk( cudaDeviceSynchronize() );
 }
 
-// very slow ~ 250
-void MMult_optim3_3(cublasHandle_t handle, int m, int k, int n, float *d_A, float *d_B, float *d_C, int lda, int ldb, int ldc) {
-
-    // const int BLOCK_SIZE = 16;
-    const int BLOCK_SIZE = 64;   // BLOCK_SIZE matters
-    const int ELE_PER_THREAD_ROW = 8;
-    const int ELE_PER_THREAD_COL = 8;
-    // const int BLOCK_SIZE = 128;   // error: uses too much shared data 
-    dim3 dimBlock(BLOCK_SIZE / ELE_PER_THREAD_COL, BLOCK_SIZE / ELE_PER_THREAD_ROW);
-    dim3 dimGrid((m + BLOCK_SIZE - 1) / BLOCK_SIZE, (n + BLOCK_SIZE - 1) / BLOCK_SIZE);
-
-    gemm_optim3_2<BLOCK_SIZE, ELE_PER_THREAD_ROW, ELE_PER_THREAD_COL> <<<dimGrid, dimBlock>>>(m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
-    // gpuErrchk( cudaPeekAtLastError() );
-    // gpuErrchk( cudaDeviceSynchronize() );
-}
-
-
-// change the loop order while doing the mulplication to utilize register
-// even slower
+// reading from global memory into shared memory in an interleave manner
+// a big performance boost
 template <int BLOCK_SIZE, int ELE_PER_THREAD_ROW, int ELE_PER_THREAD_COL> 
-__global__ void gemm_optim3_4(int m, int k, int n, float *d_A, float *d_B, float *d_C, int lda, int ldb, int ldc) {
+__global__ void gemm_optim3_3(int m, int k, int n, float *d_A, float *d_B, float *d_C, int lda, int ldb, int ldc) {
     int row = blockIdx.y * blockDim.y + threadIdx.y;
     int col = blockIdx.x * blockDim.x + threadIdx.x;   // Note `row` and `col` are the index of threads, they are not on pair with the matrix element index in this version
     // if (row >= m || col >= n) return;
 
     // by accumulating results into C_value
     float C_value[ELE_PER_THREAD_ROW][ELE_PER_THREAD_COL] = {0};
+
+    int row_stride = BLOCK_SIZE / ELE_PER_THREAD_ROW;
+    int col_stride = BLOCK_SIZE / ELE_PER_THREAD_COL;
 
     for (int tile_k_id = 0; tile_k_id < int(k / BLOCK_SIZE); ++tile_k_id) {
         __shared__ float A_shared[BLOCK_SIZE][BLOCK_SIZE];
@@ -224,18 +210,32 @@ __global__ void gemm_optim3_4(int m, int k, int n, float *d_A, float *d_B, float
         // Load Asub and Bsub from device memory to shared memory
         // Each thread loads 4 element of each sub-matrix (across 4 strided colomns)
         // :star: use thread.y, thread.x to map the location of shared memory
-        int row_in_block = threadIdx.y, col_in_block = threadIdx.x;
+
+        int thread_row = threadIdx.y, thread_col = threadIdx.x;
         #pragma unroll
-        for (int row_offset = 0; row_offset < ELE_PER_THREAD_ROW; ++row_offset) {
+        for (int row = 0; row < BLOCK_SIZE; row += row_stride) {
             #pragma unroll
-            for (int col_offset = 0; col_offset < ELE_PER_THREAD_COL; ++col_offset) {
-                int row_in_shared = row_in_block * ELE_PER_THREAD_ROW + row_offset;
-                int col_in_shared = col_in_block * ELE_PER_THREAD_COL + col_offset;
+            for (int col = 0; col < BLOCK_SIZE; col += col_stride) {
+                int row_in_shared = row + thread_row;
+                int col_in_shared = col + thread_col;
 
                 A_shared[row_in_shared][col_in_shared] = Asub[row_in_shared * lda + col_in_shared];
                 B_shared[row_in_shared][col_in_shared] = Bsub[row_in_shared * ldb + col_in_shared];
             }
         }
+
+        // #pragma unroll
+        // for (int row_offset = 0; row_offset < ELE_PER_THREAD_ROW; ++row_offset) {
+        //     #pragma unroll
+        //     for (int col_offset = 0; col_offset < ELE_PER_THREAD_COL; ++col_offset) {
+        //         int row_in_shared = row_in_block * ELE_PER_THREAD_ROW + row_offset;
+        //         int col_in_shared = col_in_block * ELE_PER_THREAD_COL + col_offset;
+
+        //         A_shared[row_in_shared][col_in_shared] = Asub[row_in_shared * lda + col_in_shared];
+        //         B_shared[row_in_shared][col_in_shared] = Bsub[row_in_shared * ldb + col_in_shared];
+        //     }
+        // }
+
         // ======== load done ======= //
 
         // Synchronize to make sure the sub-matrices are loaded
@@ -244,31 +244,16 @@ __global__ void gemm_optim3_4(int m, int k, int n, float *d_A, float *d_B, float
 
         // each thread is responsible for an `expanded` area
         // [row_in_block * ELE_PER_THREAD_ROW:(row_in_block + 1) * ELE_PER_THREAD_ROW][col_in_block * ELE_PER_THREAD_COL:(col_in_block + 1) * ELE_PER_THREAD_COL]
-        // #pragma unroll
-        // for (int row_offset = 0; row_offset < ELE_PER_THREAD_ROW; ++row_offset) {
-        //     #pragma unroll
-        //     for (int col_offset = 0; col_offset < ELE_PER_THREAD_COL; ++col_offset) {
-        //         int row_in_shared = row_in_block * ELE_PER_THREAD_ROW + row_offset;
-        //         int col_in_shared = col_in_block * ELE_PER_THREAD_COL + col_offset;
-        //         #pragma unroll
-        //         for (int i = 0; i < BLOCK_SIZE; ++i) {
-        //             // register level writing
-        //             C_value[row_offset][col_offset] += A_shared[row_in_shared][i] * B_shared[i][col_in_shared];
-        //         }
-        //     }
-        // }
-        float A_reg;
         #pragma unroll
-        for (int i = 0; i < BLOCK_SIZE; ++i) {
+        for (int row_offset = 0; row_offset < ELE_PER_THREAD_ROW; ++row_offset) {
             #pragma unroll
-            for (int row_offset = 0; row_offset < ELE_PER_THREAD_ROW; ++row_offset) {
-                int row_in_shared = row_in_block * ELE_PER_THREAD_ROW + row_offset;
-                A_reg = A_shared[row_in_shared][i];
-
+            for (int col_offset = 0; col_offset < ELE_PER_THREAD_COL; ++col_offset) {
+                int row_in_shared = thread_row * ELE_PER_THREAD_ROW + row_offset;
+                int col_in_shared = thread_col * ELE_PER_THREAD_COL + col_offset;
                 #pragma unroll
-                for (int col_offset = 0; col_offset < ELE_PER_THREAD_COL; ++col_offset) {
-                    int col_in_shared = col_in_block * ELE_PER_THREAD_COL + col_offset;
-                    C_value[row_offset][col_offset] += A_reg * B_shared[i][col_in_shared];
+                for (int i = 0; i < BLOCK_SIZE; ++i) {
+                    // register level writing
+                    C_value[row_offset][col_offset] += A_shared[row_in_shared][i] * B_shared[i][col_in_shared];
                 }
             }
         }
@@ -295,8 +280,157 @@ __global__ void gemm_optim3_4(int m, int k, int n, float *d_A, float *d_B, float
 
 }
 
+void MMult_optim3_3(cublasHandle_t handle, int m, int k, int n, float *d_A, float *d_B, float *d_C, int lda, int ldb, int ldc) {
+
+    // params really matters:
+    // BLOCK_SIZE, ELE_PER_THREAD_ROW, ELE_PER_THREAD_COL = 64, 4, 4 => ~2000GFLOPs
+    // BLOCK_SIZE, ELE_PER_THREAD_ROW, ELE_PER_THREAD_COL = 64, 8, 8 => ~200GFLOPs
+    // BLOCK_SIZE, ELE_PER_THREAD_ROW, ELE_PER_THREAD_COL = 32, 4, 4 => ~1300GFLOPs
+
+    // const int BLOCK_SIZE = 16;
+    const int BLOCK_SIZE = 64;   // BLOCK_SIZE matters
+    const int ELE_PER_THREAD_ROW = 4;
+    const int ELE_PER_THREAD_COL = 4;
+    // const int BLOCK_SIZE = 128;   // error: uses too much shared data 
+    dim3 dimBlock(BLOCK_SIZE / ELE_PER_THREAD_COL, BLOCK_SIZE / ELE_PER_THREAD_ROW);
+    dim3 dimGrid((m + BLOCK_SIZE - 1) / BLOCK_SIZE, (n + BLOCK_SIZE - 1) / BLOCK_SIZE);
+
+    gemm_optim3_3<BLOCK_SIZE, ELE_PER_THREAD_ROW, ELE_PER_THREAD_COL> <<<dimGrid, dimBlock>>>(m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
+    // gpuErrchk( cudaPeekAtLastError() );
+    // gpuErrchk( cudaDeviceSynchronize() );
+}
+
+// reading from global memory into shared memory in an interleave manner
+// + compute in an interleave manner
+// TODO: there is a little performance gain compared with 3_3, however, using setting (BLOCK_SIZE = 64, ELE_PER_THREAD_ROW=ELE_PER_THREAD_ROW=4), the result is wrong when the mat size grows
+//   and in other settings, the result is OK, which is confusing
+template <int BLOCK_SIZE, int ELE_PER_THREAD_ROW, int ELE_PER_THREAD_COL> 
+__global__ void gemm_optim3_4(int m, int k, int n, float *d_A, float *d_B, float *d_C, int lda, int ldb, int ldc) {
+    // int row = blockIdx.y * blockDim.y + threadIdx.y;
+    // int col = blockIdx.x * blockDim.x + threadIdx.x;   // Note `row` and `col` are the index of threads, they are not on pair with the matrix element index in this version
+    // if (row >= m || col >= n) return;
+
+    int thread_row = threadIdx.y, thread_col = threadIdx.x;
+
+    // by accumulating results into C_value
+    float C_value[ELE_PER_THREAD_ROW][ELE_PER_THREAD_COL] = {0};
+
+    int row_stride = BLOCK_SIZE / ELE_PER_THREAD_ROW;
+    int col_stride = BLOCK_SIZE / ELE_PER_THREAD_COL;
+
+    for (int tile_k_id = 0; tile_k_id < int(k / BLOCK_SIZE); ++tile_k_id) {
+        __shared__ float A_shared[BLOCK_SIZE][BLOCK_SIZE];
+        __shared__ float B_shared[BLOCK_SIZE][BLOCK_SIZE];
+        
+        // Get sub-matrix Asub (upper-left corner) of A
+        float *Asub = d_A + blockIdx.y * (BLOCK_SIZE * k) + tile_k_id * BLOCK_SIZE;   // can only access blockIdx.y
+        // Get sub-matrix Bsub (upper-left corner) of B
+        float *Bsub = d_B + tile_k_id * (BLOCK_SIZE * n) + blockIdx.x * BLOCK_SIZE;   // can only access blockIdx.x
+
+        // Load Asub and Bsub from device memory to shared memory
+        // Each thread loads 4 element of each sub-matrix (across 4 strided colomns)
+        // :star: use thread.y, thread.x to map the location of shared memory
+        
+        #pragma unroll
+        for (int row = 0; row < BLOCK_SIZE; row += row_stride) {
+            #pragma unroll
+            for (int col = 0; col < BLOCK_SIZE; col += col_stride) {
+                int row_in_shared = row + thread_row;
+                int col_in_shared = col + thread_col;
+
+                A_shared[row_in_shared][col_in_shared] = Asub[row_in_shared * lda + col_in_shared];
+                B_shared[row_in_shared][col_in_shared] = Bsub[row_in_shared * ldb + col_in_shared];
+            }
+        }
+
+        // ======== load done ======= //
+
+        // Synchronize to make sure the sub-matrices are loaded
+        // before starting the computation
+        __syncthreads();
+
+        #pragma unroll
+        for (int row = 0; row < BLOCK_SIZE; row += row_stride) {
+            int row_in_shared = row + thread_row;
+            int row_in_C_value = row / row_stride;
+            // int row_in_C_value = row_in_shared / row_stride;
+            
+            #pragma unroll
+            for (int col = 0; col < BLOCK_SIZE; col += col_stride) {
+                int col_in_shared = col + thread_col;
+                int col_in_C_value = col / col_stride;
+                // int col_in_C_value = col_in_shared / col_stride;
+                
+                #pragma unroll
+                for (int i = 0; i < BLOCK_SIZE; ++i) {
+                    // register level writing
+                    C_value[row_in_C_value][col_in_C_value] += A_shared[row_in_shared][i] * B_shared[i][col_in_shared];
+                }
+            }
+        }
+
+        // // each thread is responsible for an `expanded` area
+        // // [row_in_block * ELE_PER_THREAD_ROW:(row_in_block + 1) * ELE_PER_THREAD_ROW][col_in_block * ELE_PER_THREAD_COL:(col_in_block + 1) * ELE_PER_THREAD_COL]
+        // #pragma unroll
+        // for (int row_offset = 0; row_offset < ELE_PER_THREAD_ROW; ++row_offset) {
+        //     #pragma unroll
+        //     for (int col_offset = 0; col_offset < ELE_PER_THREAD_COL; ++col_offset) {
+        //         int row_in_shared = thread_row * ELE_PER_THREAD_ROW + row_offset;
+        //         int col_in_shared = thread_col * ELE_PER_THREAD_COL + col_offset;
+        //         #pragma unroll
+        //         for (int i = 0; i < BLOCK_SIZE; ++i) {
+        //             // register level writing
+        //             C_value[row_offset][col_offset] += A_shared[row_in_shared][i] * B_shared[i][col_in_shared];
+        //         }
+        //     }
+        // }
+
+        // Synchronize to make sure that the preceding
+        // computation is done before loading two new
+        // sub-matrices of A and B in the next iteration
+        // TODO: without this, the results are calculated more efficiently and still correctly
+        __syncthreads();  
+    }
+
+    float *Csub = d_C + blockIdx.y * (BLOCK_SIZE * ldc) + blockIdx.x * BLOCK_SIZE;
+
+    #pragma unroll
+    for (int row = 0; row < BLOCK_SIZE; row += row_stride) {
+        int row_in_shared = row + thread_row;
+        int row_in_C_value = row / row_stride;
+        // int row_in_C_value = row_in_shared / row_stride;
+        
+        #pragma unroll
+        for (int col = 0; col < BLOCK_SIZE; col += col_stride) {
+            int col_in_shared = col + thread_col;
+            int col_in_C_value = col / col_stride;
+            // int col_in_C_value = col_in_shared / col_stride;
+            
+            Csub[row_in_shared * ldc + col_in_shared] = C_value[row_in_C_value][col_in_C_value];
+        }
+    }
+
+    // // let's comprehend the following code in a global C matrix view 
+    // // :star: use row and col to map the location of global memory
+    // #pragma unroll
+    // for (int row_offset = 0; row_offset < ELE_PER_THREAD_ROW; ++row_offset) {
+    //     #pragma unroll
+    //     for (int col_offset = 0; col_offset < ELE_PER_THREAD_COL; ++col_offset) {
+    //         int row_in_C = row * ELE_PER_THREAD_ROW + row_offset;
+    //         int col_in_C = col * ELE_PER_THREAD_COL + col_offset;
+            
+    //         d_C[row_in_C * ldc + col_in_C] = C_value[row_offset][col_offset];   // d_C(row_in_C, col_in_C)
+    //     }
+    // }
+
+}
+
 void MMult_optim3_4(cublasHandle_t handle, int m, int k, int n, float *d_A, float *d_B, float *d_C, int lda, int ldb, int ldc) {
 
+    // params really matters:
+    // BLOCK_SIZE, ELE_PER_THREAD_ROW, ELE_PER_THREAD_COL = 64, 4, 4 => ~2000GFLOPs
+    // BLOCK_SIZE, ELE_PER_THREAD_ROW, ELE_PER_THREAD_COL = 64, 8, 8 => ~200GFLOPs
+    // BLOCK_SIZE, ELE_PER_THREAD_ROW, ELE_PER_THREAD_COL = 32, 4, 4 => ~1300GFLOPs
 
     // const int BLOCK_SIZE = 16;
     const int BLOCK_SIZE = 64;   // BLOCK_SIZE matters
@@ -307,6 +441,231 @@ void MMult_optim3_4(cublasHandle_t handle, int m, int k, int n, float *d_A, floa
     dim3 dimGrid((m + BLOCK_SIZE - 1) / BLOCK_SIZE, (n + BLOCK_SIZE - 1) / BLOCK_SIZE);
 
     gemm_optim3_4<BLOCK_SIZE, ELE_PER_THREAD_ROW, ELE_PER_THREAD_COL> <<<dimGrid, dimBlock>>>(m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
+    gpuErrchk( cudaPeekAtLastError() );
+    gpuErrchk( cudaDeviceSynchronize() );
+}
+
+// load A_shared and B_shared, seperately based on 3_3
+// No performance difference 
+template <int BLOCK_SIZE, int ELE_PER_THREAD_ROW, int ELE_PER_THREAD_COL> 
+__global__ void gemm_optim3_5(int m, int k, int n, float *d_A, float *d_B, float *d_C, int lda, int ldb, int ldc) {
+    int row = blockIdx.y * blockDim.y + threadIdx.y;
+    int col = blockIdx.x * blockDim.x + threadIdx.x;   // Note `row` and `col` are the index of threads, they are not on pair with the matrix element index in this version
+    // if (row >= m || col >= n) return;
+
+    int thread_row = threadIdx.y, thread_col = threadIdx.x;
+
+    // by accumulating results into C_value
+    float C_value[ELE_PER_THREAD_ROW][ELE_PER_THREAD_COL] = {0};
+
+    int row_stride = BLOCK_SIZE / ELE_PER_THREAD_ROW;
+    int col_stride = BLOCK_SIZE / ELE_PER_THREAD_COL;
+
+    for (int tile_k_id = 0; tile_k_id < int(k / BLOCK_SIZE); ++tile_k_id) {
+        __shared__ float A_shared[BLOCK_SIZE][BLOCK_SIZE];
+        __shared__ float B_shared[BLOCK_SIZE][BLOCK_SIZE];
+        
+        // Get sub-matrix Asub (upper-left corner) of A
+        float *Asub = d_A + blockIdx.y * (BLOCK_SIZE * k) + tile_k_id * BLOCK_SIZE;   // can only access blockIdx.y
+        // Get sub-matrix Bsub (upper-left corner) of B
+        float *Bsub = d_B + tile_k_id * (BLOCK_SIZE * n) + blockIdx.x * BLOCK_SIZE;   // can only access blockIdx.x
+
+        // Load Asub and Bsub from device memory to shared memory
+        // Each thread loads 4 element of each sub-matrix (across 4 strided colomns)
+        // :star: use thread.y, thread.x to map the location of shared memory
+
+        
+        #pragma unroll
+        for (int row = 0; row < BLOCK_SIZE; row += row_stride) {
+            #pragma unroll
+            for (int col = 0; col < BLOCK_SIZE; col += col_stride) {
+                int row_in_shared = row + thread_row;
+                int col_in_shared = col + thread_col;
+
+                A_shared[row_in_shared][col_in_shared] = Asub[row_in_shared * lda + col_in_shared];
+            }
+        }
+        #pragma unroll
+        for (int row = 0; row < BLOCK_SIZE; row += row_stride) {
+            #pragma unroll
+            for (int col = 0; col < BLOCK_SIZE; col += col_stride) {
+                int row_in_shared = row + thread_row;
+                int col_in_shared = col + thread_col;
+
+                B_shared[row_in_shared][col_in_shared] = Bsub[row_in_shared * ldb + col_in_shared];
+            }
+        }
+        // ======== load done ======= //
+
+        // Synchronize to make sure the sub-matrices are loaded
+        // before starting the computation
+        __syncthreads();
+
+        // each thread is responsible for an `expanded` area
+        // [row_in_block * ELE_PER_THREAD_ROW:(row_in_block + 1) * ELE_PER_THREAD_ROW][col_in_block * ELE_PER_THREAD_COL:(col_in_block + 1) * ELE_PER_THREAD_COL]
+        #pragma unroll
+        for (int row_offset = 0; row_offset < ELE_PER_THREAD_ROW; ++row_offset) {
+            #pragma unroll
+            for (int col_offset = 0; col_offset < ELE_PER_THREAD_COL; ++col_offset) {
+                int row_in_shared = thread_row * ELE_PER_THREAD_ROW + row_offset;
+                int col_in_shared = thread_col * ELE_PER_THREAD_COL + col_offset;
+                #pragma unroll
+                for (int i = 0; i < BLOCK_SIZE; ++i) {
+                    // register level writing
+                    C_value[row_offset][col_offset] += A_shared[row_in_shared][i] * B_shared[i][col_in_shared];
+                }
+            }
+        }
+
+        // Synchronize to make sure that the preceding
+        // computation is done before loading two new
+        // sub-matrices of A and B in the next iteration
+        // TODO: without this, the results are calculated more efficiently and still correctly
+        __syncthreads();  
+    }
+
+    // let's comprehend the following code in a global C matrix view 
+    // :star: use row and col to map the location of global memory
+    #pragma unroll
+    for (int row_offset = 0; row_offset < ELE_PER_THREAD_ROW; ++row_offset) {
+        #pragma unroll
+        for (int col_offset = 0; col_offset < ELE_PER_THREAD_COL; ++col_offset) {
+            int row_in_C = row * ELE_PER_THREAD_ROW + row_offset;
+            int col_in_C = col * ELE_PER_THREAD_COL + col_offset;
+            
+            d_C[row_in_C * ldc + col_in_C] = C_value[row_offset][col_offset];   // d_C(row_in_C, col_in_C)
+        }
+    }
+
+}
+
+void MMult_optim3_5(cublasHandle_t handle, int m, int k, int n, float *d_A, float *d_B, float *d_C, int lda, int ldb, int ldc) {
+
+    // params really matters:
+    // BLOCK_SIZE, ELE_PER_THREAD_ROW, ELE_PER_THREAD_COL = 64, 4, 4 => ~2000GFLOPs
+    // BLOCK_SIZE, ELE_PER_THREAD_ROW, ELE_PER_THREAD_COL = 64, 8, 8 => ~200GFLOPs
+    // BLOCK_SIZE, ELE_PER_THREAD_ROW, ELE_PER_THREAD_COL = 32, 4, 4 => ~1300GFLOPs
+
+    // const int BLOCK_SIZE = 16;
+    const int BLOCK_SIZE = 64;   // BLOCK_SIZE matters
+    const int ELE_PER_THREAD_ROW = 4;
+    const int ELE_PER_THREAD_COL = 4;
+    // const int BLOCK_SIZE = 128;   // error: uses too much shared data 
+    dim3 dimBlock(BLOCK_SIZE / ELE_PER_THREAD_COL, BLOCK_SIZE / ELE_PER_THREAD_ROW);
+    dim3 dimGrid((m + BLOCK_SIZE - 1) / BLOCK_SIZE, (n + BLOCK_SIZE - 1) / BLOCK_SIZE);
+
+    gemm_optim3_5<BLOCK_SIZE, ELE_PER_THREAD_ROW, ELE_PER_THREAD_COL> <<<dimGrid, dimBlock>>>(m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
     // gpuErrchk( cudaPeekAtLastError() );
     // gpuErrchk( cudaDeviceSynchronize() );
 }
+
+
+// // change the loop order while doing the mulplication to utilize register
+// // even slower
+// template <int BLOCK_SIZE, int ELE_PER_THREAD_ROW, int ELE_PER_THREAD_COL> 
+// __global__ void gemm_optim3_4(int m, int k, int n, float *d_A, float *d_B, float *d_C, int lda, int ldb, int ldc) {
+//     int row = blockIdx.y * blockDim.y + threadIdx.y;
+//     int col = blockIdx.x * blockDim.x + threadIdx.x;   // Note `row` and `col` are the index of threads, they are not on pair with the matrix element index in this version
+//     // if (row >= m || col >= n) return;
+
+//     // by accumulating results into C_value
+//     float C_value[ELE_PER_THREAD_ROW][ELE_PER_THREAD_COL] = {0};
+
+//     for (int tile_k_id = 0; tile_k_id < int(k / BLOCK_SIZE); ++tile_k_id) {
+//         __shared__ float A_shared[BLOCK_SIZE][BLOCK_SIZE];
+//         __shared__ float B_shared[BLOCK_SIZE][BLOCK_SIZE];
+        
+//         // Get sub-matrix Asub (upper-left corner) of A
+//         float *Asub = d_A + blockIdx.y * (BLOCK_SIZE * k) + tile_k_id * BLOCK_SIZE;   // can only access blockIdx.y
+//         // Get sub-matrix Bsub (upper-left corner) of B
+//         float *Bsub = d_B + tile_k_id * (BLOCK_SIZE * n) + blockIdx.x * BLOCK_SIZE;   // can only access blockIdx.x
+
+//         // Load Asub and Bsub from device memory to shared memory
+//         // Each thread loads 4 element of each sub-matrix (across 4 strided colomns)
+//         // :star: use thread.y, thread.x to map the location of shared memory
+//         int row_in_block = threadIdx.y, col_in_block = threadIdx.x;
+//         #pragma unroll
+//         for (int row_offset = 0; row_offset < ELE_PER_THREAD_ROW; ++row_offset) {
+//             #pragma unroll
+//             for (int col_offset = 0; col_offset < ELE_PER_THREAD_COL; ++col_offset) {
+//                 int row_in_shared = row_in_block * ELE_PER_THREAD_ROW + row_offset;
+//                 int col_in_shared = col_in_block * ELE_PER_THREAD_COL + col_offset;
+
+//                 A_shared[row_in_shared][col_in_shared] = Asub[row_in_shared * lda + col_in_shared];
+//                 B_shared[row_in_shared][col_in_shared] = Bsub[row_in_shared * ldb + col_in_shared];
+//             }
+//         }
+//         // ======== load done ======= //
+
+//         // Synchronize to make sure the sub-matrices are loaded
+//         // before starting the computation
+//         __syncthreads();
+
+//         // each thread is responsible for an `expanded` area
+//         // [row_in_block * ELE_PER_THREAD_ROW:(row_in_block + 1) * ELE_PER_THREAD_ROW][col_in_block * ELE_PER_THREAD_COL:(col_in_block + 1) * ELE_PER_THREAD_COL]
+//         // #pragma unroll
+//         // for (int row_offset = 0; row_offset < ELE_PER_THREAD_ROW; ++row_offset) {
+//         //     #pragma unroll
+//         //     for (int col_offset = 0; col_offset < ELE_PER_THREAD_COL; ++col_offset) {
+//         //         int row_in_shared = row_in_block * ELE_PER_THREAD_ROW + row_offset;
+//         //         int col_in_shared = col_in_block * ELE_PER_THREAD_COL + col_offset;
+//         //         #pragma unroll
+//         //         for (int i = 0; i < BLOCK_SIZE; ++i) {
+//         //             // register level writing
+//         //             C_value[row_offset][col_offset] += A_shared[row_in_shared][i] * B_shared[i][col_in_shared];
+//         //         }
+//         //     }
+//         // }
+//         float A_reg;
+//         #pragma unroll
+//         for (int i = 0; i < BLOCK_SIZE; ++i) {
+//             #pragma unroll
+//             for (int row_offset = 0; row_offset < ELE_PER_THREAD_ROW; ++row_offset) {
+//                 int row_in_shared = row_in_block * ELE_PER_THREAD_ROW + row_offset;
+//                 A_reg = A_shared[row_in_shared][i];
+
+//                 #pragma unroll
+//                 for (int col_offset = 0; col_offset < ELE_PER_THREAD_COL; ++col_offset) {
+//                     int col_in_shared = col_in_block * ELE_PER_THREAD_COL + col_offset;
+//                     C_value[row_offset][col_offset] += A_reg * B_shared[i][col_in_shared];
+//                 }
+//             }
+//         }
+
+//         // Synchronize to make sure that the preceding
+//         // computation is done before loading two new
+//         // sub-matrices of A and B in the next iteration
+//         // TODO: without this, the results are calculated more efficiently and still correctly
+//         __syncthreads();  
+//     }
+
+//     // let's comprehend the following code in a global C matrix view 
+//     // :star: use row and col to map the location of global memory
+//     #pragma unroll
+//     for (int row_offset = 0; row_offset < ELE_PER_THREAD_ROW; ++row_offset) {
+//         #pragma unroll
+//         for (int col_offset = 0; col_offset < ELE_PER_THREAD_COL; ++col_offset) {
+//             int row_in_C = row * ELE_PER_THREAD_ROW + row_offset;
+//             int col_in_C = col * ELE_PER_THREAD_COL + col_offset;
+            
+//             d_C[row_in_C * ldc + col_in_C] = C_value[row_offset][col_offset];   // d_C(row_in_C, col_in_C)
+//         }
+//     }
+
+// }
+
+// void MMult_optim3_4(cublasHandle_t handle, int m, int k, int n, float *d_A, float *d_B, float *d_C, int lda, int ldb, int ldc) {
+
+
+//     // const int BLOCK_SIZE = 16;
+//     const int BLOCK_SIZE = 64;   // BLOCK_SIZE matters
+//     const int ELE_PER_THREAD_ROW = 4;
+//     const int ELE_PER_THREAD_COL = 4;
+//     // const int BLOCK_SIZE = 128;   // error: uses too much shared data 
+//     dim3 dimBlock(BLOCK_SIZE / ELE_PER_THREAD_COL, BLOCK_SIZE / ELE_PER_THREAD_ROW);
+//     dim3 dimGrid((m + BLOCK_SIZE - 1) / BLOCK_SIZE, (n + BLOCK_SIZE - 1) / BLOCK_SIZE);
+
+//     gemm_optim3_4<BLOCK_SIZE, ELE_PER_THREAD_ROW, ELE_PER_THREAD_COL> <<<dimGrid, dimBlock>>>(m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
+//     // gpuErrchk( cudaPeekAtLastError() );
+//     // gpuErrchk( cudaDeviceSynchronize() );
+// }
