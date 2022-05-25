@@ -38,3 +38,9 @@
 // #define nBlockSize 128
 
 // #define BLOCK_SIZE 16
+
+// cal offset from row col and ld , in row-major matrix, ld is the width of the matrix
+#define OFFSET(row, col, ld) ((row) * (ld) + (col))
+
+// transfer float4
+#define FETCH_FLOAT4(pointer) (reinterpret_cast<float4*>(&(pointer))[0])

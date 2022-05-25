@@ -8,7 +8,9 @@
 // If the code is hard to read, please refer to https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#shared-memory
 // for more readable version (the official code is yyds)
 template <int BLOCK_SIZE> 
-__global__ void gemm_optim2_1(int m, int k, int n, float *d_A, float *d_B, float *d_C, int lda, int ldb, int ldc) {
+__global__ void gemm_optim2_1(int m, int k, int n,
+     float *d_A, float *d_B, float *d_C, int lda, int ldb, int ldc
+    ) {
     int row = blockIdx.y * blockDim.y + threadIdx.y;
     int col = blockIdx.x * blockDim.x + threadIdx.x;
     if (row >= m || col >= n) return;

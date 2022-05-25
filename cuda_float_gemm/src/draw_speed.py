@@ -12,7 +12,8 @@ plt.ylabel('GFlops')
 methods = [
         'MMul_benchmark',
         'MMul_base', 'MMul_optim1_1', 'MMul_optim2_1', 'MMul_optim3_1', 'MMul_optim3_2', 'MMul_optim3_3', 'MMul_optim3_5', 'MMul_optim4_1', 'MMul_optim4_2',
-        'MMul_optim6_1'
+        'MMul_optim6_1',
+        'MMul_optim7_1'
         #    'MMul_optim1_1', 'MMul_optim1_2', 'MMul_optim1_3', 'MMul_optim1_4',
         #    'MMul_optim2_0', 'MMul_optim2_1', 'MMul_optim2_2', 'MMul_optim2_3',
         #    'MMul_optim3_1', 'MMul_optim3_2', 'MMul_optim3_3', 'MMul_optim3_4', 'MMul_optim3_5', 'MMul_optim3_6', 'MMul_optim3_7',

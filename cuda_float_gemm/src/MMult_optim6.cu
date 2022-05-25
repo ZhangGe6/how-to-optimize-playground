@@ -16,13 +16,9 @@ template <
     const bool ENABLE_DOUBLE_BUFFER // whether enable double buffering or not
     > 
 __global__ void gemm_optim6_1( 
-    // float * __restrict__ A,
-    // float * __restrict__ B,
-    // float * __restrict__ C,
-
-    float * A,
-    float * B,
-    float * C,
+    float * __restrict__ A,
+    float * __restrict__ B,
+    float * __restrict__ C,
     const int M,
     const int K,
     const int N,
@@ -151,8 +147,6 @@ __global__ void gemm_optim6_1(
     }
 }
 
-// 疑问：为什么BLOCK_SIZE_K = 32正常跑，BLOCK_SIZE_K=8反而报“GPUassert: too many resources requested for launch”？
-// void MMult_optim6_1(cublasHandle_t handle, int m, int k, int n, float *d_A, float *d_B, float *d_C, int lda, int ldb, int ldc) {
 void MMult_optim6_1(cublasHandle_t handle, float *A, float *B, float *C, const int M, const int K, const int N, float alpha, float beta) {
 
     // params really matters:
