@@ -11,7 +11,8 @@ int main() {
     FILE *fptr;
     // fptr = fopen("../res/MMul_benchmark.txt","w");
     // fptr = fopen("../res/MMul_base.txt","w");
-    fptr = fopen("../res/MMul_optim5_2.txt", "w");
+    // fptr = fopen("../res/MMul_optim3_3_1.txt", "w");
+    fptr = fopen("../res/MMul_optim6_1.txt", "w");
     if(fptr == NULL)
     {
         printf("Error open result file!");   
@@ -24,6 +25,8 @@ int main() {
     // for (int msize = 1260; msize <= 1260; msize += 4){  
         int m = msize, k = msize, n = msize;
         int lda = k, ldb = n, ldc = n;
+        float alpha = 1.0;
+        float beta = 0.0;
 
         /* each item of output require 2K floating point ops (multiply & add) and perform M*K times 
         See https://sahnimanas.github.io/post/anatomy-of-a-high-performance-convolution/ for more details*/
@@ -35,6 +38,7 @@ int main() {
         // https://docs.nvidia.com/cuda/cublas/index.html#cublashandle_t
         cublasHandle_t handle;
         cublasCreate(&handle);
+
         
         // host side
         float *h_A, *h_B, *h_C_base, *h_C_optim;
@@ -80,12 +84,16 @@ int main() {
             // MMult_optim3_3(handle, m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
             // MMult_optim3_4(handle, m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
             // MMult_optim3_5(handle, m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
+            // MMult_optim3_3_1(handle, m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
 
             // MMult_optim4_1(handle, m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
             // MMult_optim4_2(handle, m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
 
             // MMult_optim5_1(handle, m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
-            MMult_optim5_2(handle, m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
+            // MMult_optim5_2(handle, m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
+
+            MMult_optim6_1(handle, d_A, d_B, d_C, m, k, n, alpha, beta);
+
 
             cudaEventRecord(stop);
 

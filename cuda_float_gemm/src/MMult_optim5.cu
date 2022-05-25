@@ -85,15 +85,33 @@ template<
     int BLOCK_SIZE_N, 
     int BLOCK_SIZE_K, 
     int ELE_PER_THREAD_ROW, 
-    int ELE_PER_THREAD_COL
+    int ELE_PER_THREAD_COL,
+    int ELE_PER_THREAD_READ
 > 
 __global__ void gemm_optim5_2(int m, int k, int n, float *d_A, float *d_B, float *d_C, int lda, int ldb, int ldc) {
-    // int row = blockIdx.y * blockDim.y + threadIdx.y;
-    // int col = blockIdx.x * blockDim.x + threadIdx.x;   // Note `row` and `col` are the index of threads, they are not on pair with the matrix element index in this version
+    int row = blockIdx.y * blockDim.y + threadIdx.y;
+    int col = blockIdx.x * blockDim.x + threadIdx.x;   // Note `row` and `col` are the index of threads, they are not on pair with the matrix element index in this version
     // if (row >= m || col >= n) return;
+    
+    int thread_row = threadIdx.y, thread_col = threadIdx.x;
 
     // by accumulating results into C_value
     float C_value[ELE_PER_THREAD_ROW][ELE_PER_THREAD_COL] = {0};
+
+    const int block_thread_num = blockDim.x * blockDim.y;
+    const int tid = threadIdx.y * blockDim.x + threadIdx.x;
+
+    const int A_thread_num_read_per_row = BLOCK_SIZE_K / ELE_PER_THREAD_READ;   // the thread num needed to read a row
+    const int A_row_stride = block_thread_num / A_thread_num_read_per_row;      // after all threads finish reading, we move down for next sub-block
+    
+    int A_read_row_offset = tid / A_thread_num_read_per_row;
+    int A_read_col_start = (tid % A_thread_num_read_per_row) * ELE_PER_THREAD_READ;
+
+    const int B_thread_num_read_per_row = BLOCK_SIZE_N / ELE_PER_THREAD_READ;   // the thread num needed to read a row
+    const int B_row_stride = block_thread_num / B_thread_num_read_per_row;      // after all threads finish reading, we move down for next sub-block
+    
+    int B_read_row_offset = tid / B_thread_num_read_per_row;
+    int B_read_col_start = (tid % B_thread_num_read_per_row) * ELE_PER_THREAD_READ;
 
     __shared__ float A_shared[BLOCK_SIZE_M][BLOCK_SIZE_K];
     __shared__ float B_shared[BLOCK_SIZE_K][BLOCK_SIZE_N];
@@ -105,34 +123,28 @@ __global__ void gemm_optim5_2(int m, int k, int n, float *d_A, float *d_B, float
         // Get sub-matrix Bsub (upper-left corner) of B
         float *Bsub = d_B + tile_k_id * (BLOCK_SIZE_K * n) + blockIdx.x * BLOCK_SIZE_N;   // can only access blockIdx.x
 
-        // Load Asub and Bsub from device memory to shared memory
-        // :star: use thread.y, thread.x to map the location of shared memory
-
-        int row_in_block = threadIdx.y, col_in_block = threadIdx.x;
+        // load A_shared
         #pragma unroll
-        for (int row_offset = 0; row_offset < ELE_PER_THREAD_ROW; ++row_offset) {
+        for (int start_row = 0; start_row < BLOCK_SIZE_M; start_row += A_row_stride) {
+            int read_row = start_row + A_read_row_offset;
             #pragma unroll
-            for (int col_offset = 0; col_offset < ELE_PER_THREAD_COL; ++col_offset) {
-                int row_in_shared = row_in_block * ELE_PER_THREAD_ROW + row_offset;
-                int col_in_shared = col_in_block * ELE_PER_THREAD_COL + col_offset;
-
-                A_shared[row_in_shared][col_in_shared] = Asub[row_in_shared * lda + col_in_shared];
-                B_shared[row_in_shared][col_in_shared] = Bsub[row_in_shared * ldb + col_in_shared];
+            for (int ele_offset = 0; ele_offset < ELE_PER_THREAD_READ; ++ele_offset) {
+                int read_col = A_read_col_start + ele_offset;
+                A_shared[read_row][read_col] = Asub[read_row * lda + read_col];
+            }
+        }
+        
+        // load B_shared
+        #pragma unroll
+        for (int start_row = 0; start_row < BLOCK_SIZE_K; start_row += B_row_stride) {
+            int read_row = start_row + B_read_row_offset;
+            #pragma unroll
+            for (int ele_offset = 0; ele_offset < ELE_PER_THREAD_READ; ++ele_offset) {
+                int read_col = B_read_col_start + ele_offset;
+                B_shared[read_row][read_col] = Bsub[read_row * ldb + read_col];
             }
         }
 
-        // int row_in_block = threadIdx.y, col_in_block = threadIdx.x;
-        // #pragma unroll
-        // for (int row_offset = 0; row_offset < ELE_PER_THREAD_ROW; ++row_offset) {
-        //     #pragma unroll
-        //     for (int col_offset = 0; col_offset < ELE_PER_THREAD_COL; ++col_offset) {
-        //         int row_in_shared = row_in_block * ELE_PER_THREAD_ROW + row_offset;
-        //         int col_in_shared = col_in_block * ELE_PER_THREAD_COL + col_offset;
-
-        //         A_shared[row_in_shared][col_in_shared] = Asub[row_in_shared * lda + col_in_shared];
-        //         B_shared[row_in_shared][col_in_shared] = Bsub[row_in_shared * ldb + col_in_shared];
-        //     }
-        // }
         // ======== load done ======= //
 
         // Synchronize to make sure the sub-matrices are loaded
@@ -145,8 +157,8 @@ __global__ void gemm_optim5_2(int m, int k, int n, float *d_A, float *d_B, float
         for (int row_offset = 0; row_offset < ELE_PER_THREAD_ROW; ++row_offset) {
             #pragma unroll
             for (int col_offset = 0; col_offset < ELE_PER_THREAD_COL; ++col_offset) {
-                int row_in_shared = row_in_block * ELE_PER_THREAD_ROW + row_offset;
-                int col_in_shared = col_in_block * ELE_PER_THREAD_COL + col_offset;
+                int row_in_shared = thread_row * ELE_PER_THREAD_ROW + row_offset;
+                int col_in_shared = thread_col * ELE_PER_THREAD_COL + col_offset;
                 #pragma unroll
                 for (int i = 0; i < BLOCK_SIZE_K; ++i) {
                     // register level writing
@@ -177,6 +189,7 @@ __global__ void gemm_optim5_2(int m, int k, int n, float *d_A, float *d_B, float
 
 }
 
+// 疑问：为什么BLOCK_SIZE_K = 32正常跑，BLOCK_SIZE_K=8反而报“GPUassert: too many resources requested for launch”？
 void MMult_optim5_2(cublasHandle_t handle, int m, int k, int n, float *d_A, float *d_B, float *d_C, int lda, int ldb, int ldc) {
 
     // params really matters:
@@ -189,10 +202,12 @@ void MMult_optim5_2(cublasHandle_t handle, int m, int k, int n, float *d_A, floa
     const int BLOCK_SIZE_K = 32;
     const int ELE_PER_THREAD_ROW = 4;
     const int ELE_PER_THREAD_COL = 4;
+    const int ELE_PER_THREAD_READ = 4;
+
     dim3 dimBlock(BLOCK_SIZE_N / ELE_PER_THREAD_COL, BLOCK_SIZE_M / ELE_PER_THREAD_ROW);
     dim3 dimGrid((m + BLOCK_SIZE_N - 1) / BLOCK_SIZE_N, (n + BLOCK_SIZE_M - 1) / BLOCK_SIZE_M);
 
-    gemm_optim5_2<BLOCK_SIZE_M, BLOCK_SIZE_N, BLOCK_SIZE_K, ELE_PER_THREAD_ROW, ELE_PER_THREAD_COL> <<<dimGrid, dimBlock>>>(m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
+    gemm_optim5_2<BLOCK_SIZE_M, BLOCK_SIZE_N, BLOCK_SIZE_K, ELE_PER_THREAD_ROW, ELE_PER_THREAD_COL, ELE_PER_THREAD_READ> <<<dimGrid, dimBlock>>>(m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaDeviceSynchronize() );
 }
