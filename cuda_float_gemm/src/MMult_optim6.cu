@@ -7,6 +7,7 @@
 
 // transfer float4
 #define FETCH_FLOAT4(pointer) (reinterpret_cast<float4*>(&(pointer))[0])
+// the base version from https://github1s.com/Cjkkkk/CUDA_gemm/blob/HEAD/src/cuda/dense.cu
 template <
     const int BLOCK_SIZE_M,  // width of block of C that each thread block calculate
     const int BLOCK_SIZE_K,  // height of block of A that each thread block load into shared memory

@@ -12,7 +12,7 @@ int main() {
     // fptr = fopen("../res/MMul_benchmark.txt","w");
     // fptr = fopen("../res/MMul_base.txt","w");
     // fptr = fopen("../res/MMul_optim3_3_1.txt", "w");
-    fptr = fopen("../res/MMul_optim8_1.txt", "w");
+    fptr = fopen("../res/MMul_optim8_4.txt", "w");
     if(fptr == NULL)
     {
         printf("Error open result file!");   
@@ -96,8 +96,12 @@ int main() {
             // MMult_optim6_1(handle, d_A, d_B, d_C, m, k, n, alpha, beta);
             // MMult_optim7_1(handle, d_A, d_B, d_C, m, k, n, alpha, beta);
             // MMult_optim7_2(handle, d_A, d_B, d_C, m, k, n, alpha, beta);
+            // MMult_optim7_3(handle, d_A, d_B, d_C, m, k, n, alpha, beta);
 
-            MMult_optim8_1(handle, d_A, d_B, d_C, m, k, n, alpha, beta);
+            // MMult_optim8_1(handle, d_A, d_B, d_C, m, k, n, alpha, beta);
+            // MMult_optim8_2(handle, d_A, d_B, d_C, m, k, n, alpha, beta);
+            // MMult_optim8_3(handle, d_A, d_B, d_C, m, k, n, alpha, beta);
+            MMult_optim8_4(handle, d_A, d_B, d_C, m, k, n, alpha, beta);
 
 
             cudaEventRecord(stop);
