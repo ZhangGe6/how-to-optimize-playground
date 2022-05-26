@@ -12,21 +12,9 @@ plt.ylabel('GFlops')
 methods = [
         'MMul_benchmark',
         'MMul_base', 'MMul_optim1_1', 'MMul_optim2_1', 'MMul_optim3_1', 'MMul_optim3_2', 'MMul_optim4_1',
-        'MMul_optim5_1', 'MMul_optim5_2'
-
-        #    'MMul_optim1_1', 'MMul_optim1_2', 'MMul_optim1_3', 'MMul_optim1_4',
-        #    'MMul_optim2_0', 'MMul_optim2_1', 'MMul_optim2_2', 'MMul_optim2_3',
-        #    'MMul_optim3_1', 'MMul_optim3_2', 'MMul_optim3_3', 'MMul_optim3_4', 'MMul_optim3_5', 'MMul_optim3_6', 'MMul_optim3_7',
-        # 'MMul_optim3_2', 'MMul_optim4_1', 'MMul_optim4_2', 'MMul_optim4_3', 'MMul_optim4_4', 'MMul_optim4_5', 
-        # 'MMul_optim3_2', 'MMul_optim5_1', 'MMul_optim5_2',
-
-        # 'MMul_base', 'MMul_optim3_2', 'MMul_optim6_1', 'MMul_optim6_2', 'MMul_optim6_3', 'MMul_optim6_4', 'MMul_optim6_5', 'MMul_optim6_6', 'MMul_optim6_7',
-        # 'MMul_base', 'MMul_optim6_1', 'MMul_optim6_6', 'MMul_optim7_1'
-        # 'MMul_base',  'MMul_optim8_0', 'MMul_optim8_1', 'MMul_optim1_1', 'MMul_optim8_2', 'MMul_optim7_1', 'MMul_optim8_3', 'MMul_optim8_4', 'MMul_optim8_5', 'MMul_optim8_7',
-
-        # 'MMul_base', 'MMul_optim1_1', 'MMul_optim9_1', 'MMul_optim9_2', 'MMul_optim9_3'
-        # 'MMul_base', 'MMul_optim8_7', 'MMul_optim9_4', 'MMul_optim9_5', 'MMul_optim9_6', 'MMul_optim9_7', 'MMul_optim9_8', 'MMul_optim9_9'
-
+        'MMul_optim5_1', 'MMul_optim5_2',
+        'MMul_optim6_1',
+        'MMult_optim_rect1_1',
         ]
 
 colors = dict(mcolors.BASE_COLORS, **mcolors.CSS4_COLORS)

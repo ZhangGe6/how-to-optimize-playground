@@ -20,7 +20,7 @@ $(BUILD)/%.o: %.cu
 	$(CC) $(CFLAGS) $(GENCODE_FLAGS)  -c $< -o $(BUILD)/$@
 
 all:
-	@echo $(MulMethod_OBJs)
+	echo $(MulMethod_OBJs)
 	rm -f test_MMult.x
 	make test_MMult.x
 
