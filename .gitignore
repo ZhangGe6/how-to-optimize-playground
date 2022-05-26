@@ -1,5 +1,5 @@
-*o
-*x
-*.txt
-*/res/
+*.o
+*.x
 */gym/
+*/build/
+*/*backup/
