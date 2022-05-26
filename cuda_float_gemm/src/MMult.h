@@ -31,8 +31,14 @@ void MMult_optim6_1(cublasHandle_t handle, float *A, float *B, float *C, int M, 
 void MMult_optim7_1(cublasHandle_t handle, float *A, float *B, float *C, int M, int K, int N, float alpha, float beta);
 void MMult_optim7_2(cublasHandle_t handle, float *A, float *B, float *C, int M, int K, int N, float alpha, float beta);
 void MMult_optim7_3(cublasHandle_t handle, float *A, float *B, float *C, int M, int K, int N, float alpha, float beta);
+void MMult_optim7_4(cublasHandle_t handle, float *A, float *B, float *C, int M, int K, int N, float alpha, float beta);
 
+// try prefetch
 void MMult_optim8_1(cublasHandle_t handle, float *A, float *B, float *C, int M, int K, int N, float alpha, float beta);
 void MMult_optim8_2(cublasHandle_t handle, float *A, float *B, float *C, int M, int K, int N, float alpha, float beta);
 void MMult_optim8_3(cublasHandle_t handle, float *A, float *B, float *C, int M, int K, int N, float alpha, float beta);
 void MMult_optim8_4(cublasHandle_t handle, float *A, float *B, float *C, int M, int K, int N, float alpha, float beta);
+
+void MMult_optim9_1(cublasHandle_t handle, float *A, float *B, float *C, int M, int K, int N, float alpha, float beta);
+
+void MMult_optim10_1(cublasHandle_t handle, float *A, float *B, float *C, int M, int K, int N, float alpha, float beta);
