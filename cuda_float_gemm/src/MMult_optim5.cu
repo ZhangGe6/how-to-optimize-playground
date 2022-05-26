@@ -2,48 +2,54 @@
 #include "utils.h"
 #include "MMult.h"
 
-// use more flexible block size for m, n and k based on MMult_optim2_1
-template<
-    int BLOCK_SIZE_M, 
-    int BLOCK_SIZE_N, 
-    int BLOCK_SIZE_K
-> 
-__global__ void gemm_optim5_1(int m, int k, int n, float *d_A, float *d_B, float *d_C, int lda, int ldb, int ldc) {
+// use wider datatype like float4 
+// How can it speedup: https://stackoverflow.com/questions/26676806/efficiency-of-cuda-vector-types-float2-float3-float4
+
+// use float4 (consecutive) elements in x dimension based on gemm_kernel_optim3_1
+// https://github1s.com/Cjkkkk/CUDA_gemm/blob/HEAD/src/cuda/dense_legacy.cu#L265
+// fairly speedup
+
+template <int BLOCK_SIZE> 
+__global__ void gemm_kernel_optim5_1(float *A, float *B, float *C, int M, int K, int N) {
     int row = blockIdx.y * blockDim.y + threadIdx.y;
-    int col = blockIdx.x * blockDim.x + threadIdx.x;
-    if (row >= m || col >= n) return;
+    int col = blockIdx.x * blockDim.x + threadIdx.x;   // Note `row` and `col` are the index of threads, they are not on pair with the matrix element index in this version
 
-    // Each thread computes one element of Csub
+    int thread_row = threadIdx.y;
+    int thread_col = threadIdx.x;
+
+    // Each thread computes 4 element of Csub
     // by accumulating results into C_value
-    float C_value = 0;
+    float4 C_value = {0, 0, 0, 0};
+    
+    __shared__ float A_shared[BLOCK_SIZE][BLOCK_SIZE];
+    __shared__ float B_shared[BLOCK_SIZE][BLOCK_SIZE];
+            
+    for (int tile_idx = 0; tile_idx < K; tile_idx += BLOCK_SIZE) {
 
-    __shared__ float A_shared[BLOCK_SIZE_M][BLOCK_SIZE_K];
-    __shared__ float B_shared[BLOCK_SIZE_K][BLOCK_SIZE_N];
-
-    // 各线程依次完成“千层饼”的第tile_k_id * BLOCK_SIZE~ tile_k_id * BLOCK_SIZE + BLOCK_SIZE层，并叠加
-    // printf("k %d, BLOCK_SIZE %d\n", k, BLOCK_SIZE);
-    for (int tile_k_id = 0; tile_k_id < int(k / BLOCK_SIZE_K); ++tile_k_id) {
-        // printf("tile_k_id %d\n", tile_k_id);
-        
-        // Get sub-matrix Asub (upper-left corner) of A
-        float *Asub = d_A + blockIdx.y * (BLOCK_SIZE_M * k) + tile_k_id * BLOCK_SIZE_K;   // can only access blockIdx.y
-        // Get sub-matrix Bsub (upper-left corner) of B
-        float *Bsub = d_B + tile_k_id * (BLOCK_SIZE_K * n) + blockIdx.x * BLOCK_SIZE_N;   // can only access blockIdx.x
+        // Get sub-(block)-matrix Asub (upper-left corner) of A
+        float *Asub = A + blockIdx.y * (BLOCK_SIZE * K) + tile_idx;  
+        // Get sub-(block)-matrix Bsub (upper-left corner) of B
+        float *Bsub = B + tile_idx * N + blockIdx.x * BLOCK_SIZE;  
 
         // Load Asub and Bsub from device memory to shared memory
-        // Each thread loads one element of each sub-matrix
-        // TODO: I do not know how to load data without branching when the threads per block is more than the elements in the shared memory (aka BLOCK_SIZE_K < BLOCK_SIZE_N or BLOCK_SIZE_K < BLOCK_SIZE_M)
-        int row_in_block = threadIdx.y, col_in_block = threadIdx.x;
-        A_shared[row_in_block][col_in_block] = Asub[row_in_block * lda + col_in_block];
-        B_shared[row_in_block][col_in_block] = Bsub[row_in_block * ldb + col_in_block];
+        // Each thread loads 4 element of each sub-matrix (across 4 consecutive colomns)
+        FETCH_FLOAT4(A_shared[thread_row][4 * thread_col]) = FETCH_FLOAT4(Asub[OFFSET(thread_row, 4 * thread_col, K)]);
+        FETCH_FLOAT4(B_shared[thread_row][4 * thread_col]) = FETCH_FLOAT4(Bsub[OFFSET(thread_row, 4 * thread_col, N)]);
+
+        // ======== load done ======= //
 
         // Synchronize to make sure the sub-matrices are loaded
         // before starting the computation
         __syncthreads();
 
         // Multiply within Asub and Bsub
-        for (int i = 0; i < BLOCK_SIZE_K; ++i) {
-            C_value += A_shared[row_in_block][i] * B_shared[i][col_in_block];
+        // Each thread calculate 4 element of each sub-matrix (1x4 consecutive colomns)
+        #pragma unroll
+        for (int i = 0; i < BLOCK_SIZE; ++i) {
+            C_value.x += A_shared[thread_row][i] * B_shared[i][4 * thread_col];
+            C_value.y += A_shared[thread_row][i] * B_shared[i][4 * thread_col + 1];
+            C_value.z += A_shared[thread_row][i] * B_shared[i][4 * thread_col + 2];
+            C_value.w += A_shared[thread_row][i] * B_shared[i][4 * thread_col + 3];
         } 
 
         // Synchronize to make sure that the preceding
@@ -53,98 +59,56 @@ __global__ void gemm_optim5_1(int m, int k, int n, float *d_A, float *d_B, float
         __syncthreads();  
     }
 
-    d_C(row, col) = C_value;
+    C[OFFSET(row, 4 * col, N)] = C_value.x;
+    C[OFFSET(row, 4 * col + 1, N)] = C_value.y;
+    C[OFFSET(row, 4 * col + 2, N)] = C_value.z;
+    C[OFFSET(row, 4 * col + 3, N)] = C_value.w;
 }
 
-void MMult_optim5_1(cublasHandle_t handle, int m, int k, int n, float *d_A, float *d_B, float *d_C, int lda, int ldb, int ldc) {
+void MMult_optim5_1(cublasHandle_t handle, float *A, float *B, float *C, int M, int K, int N) {
 
-    // const int BLOCK_SIZE_M = 128;
-    // const int BLOCK_SIZE_N = 128;
-    // const int BLOCK_SIZE_K = 32;
-    
-    printf("I do not know how to load data without branching when the threads per block is more than the elements in the shared memory (aka BLOCK_SIZE_K < BLOCK_SIZE_N or BLOCK_SIZE_K < BLOCK_SIZE_M), so this one is not implemented");
-    assert(false);
+    // const int BLOCK_SIZE = 16;
+    const int BLOCK_SIZE = 64;   // BLOCK_SIZE matters
+    // const int BLOCK_SIZE = 128;   // error: uses too much shared data 
+    dim3 dimBlock(BLOCK_SIZE / 4, BLOCK_SIZE);   // decrease the thread dim along x dim by 4
+    dim3 dimGrid((N + BLOCK_SIZE - 1) / BLOCK_SIZE, (M + BLOCK_SIZE - 1) / BLOCK_SIZE);
 
-    const int BLOCK_SIZE_M = 32;
-    const int BLOCK_SIZE_N = 32;
-    const int BLOCK_SIZE_K = 16;
-
-    dim3 dimBlock(BLOCK_SIZE_N, BLOCK_SIZE_M);
-    dim3 dimGrid((n + BLOCK_SIZE_N - 1) / BLOCK_SIZE_N, (m + BLOCK_SIZE_M - 1) / BLOCK_SIZE_M);
-
-    gemm_optim5_1<BLOCK_SIZE_M, BLOCK_SIZE_N, BLOCK_SIZE_K> <<<dimGrid, dimBlock>>>(m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
-    gpuErrchk( cudaPeekAtLastError() );
-    gpuErrchk( cudaDeviceSynchronize() );
-
+    gemm_kernel_optim5_1<BLOCK_SIZE><<<dimGrid, dimBlock>>>(A, B, C, M, K, N);
 }
 
-
-// use more flexible block size for m, n and k based on MMult_optim3_2
-template<
-    int BLOCK_SIZE_M, 
-    int BLOCK_SIZE_N, 
-    int BLOCK_SIZE_K, 
-    int ELE_PER_THREAD_ROW, 
-    int ELE_PER_THREAD_COL,
-    int ELE_PER_THREAD_READ
-> 
-__global__ void gemm_optim5_2(int m, int k, int n, float *d_A, float *d_B, float *d_C, int lda, int ldb, int ldc) {
+// use float4 based on gemm_kernel_optim3_2
+// a large speedup
+template <int BLOCK_SIZE, int ELE_PER_THREAD_ROW, int ELE_PER_THREAD_COL> 
+__global__ void gemm_kernel_optim5_2(float *A, float *B, float *C, int M, int K, int N) {
     int row = blockIdx.y * blockDim.y + threadIdx.y;
     int col = blockIdx.x * blockDim.x + threadIdx.x;   // Note `row` and `col` are the index of threads, they are not on pair with the matrix element index in this version
-    // if (row >= m || col >= n) return;
-    
-    int thread_row = threadIdx.y, thread_col = threadIdx.x;
 
-    // by accumulating results into C_value
-    float C_value[ELE_PER_THREAD_ROW][ELE_PER_THREAD_COL] = {0};
+    int thread_row = threadIdx.y;
+    int thread_col = threadIdx.x;
 
-    const int block_thread_num = blockDim.x * blockDim.y;
-    const int tid = threadIdx.y * blockDim.x + threadIdx.x;
+    // float4 C_value[ELE_PER_THREAD_ROW] = {{0, 0, 0, 0}};
+    // ELE_PER_THREAD_COL == 4 here
+    float C_value[ELE_PER_THREAD_ROW][ELE_PER_THREAD_COL] = {{0, 0, 0, 0}};
 
-    const int A_thread_num_read_per_row = BLOCK_SIZE_K / ELE_PER_THREAD_READ;   // the thread num needed to read a row
-    const int A_row_stride = block_thread_num / A_thread_num_read_per_row;      // after all threads finish reading, we move down for next sub-block
-    
-    int A_read_row_offset = tid / A_thread_num_read_per_row;
-    int A_read_col_start = (tid % A_thread_num_read_per_row) * ELE_PER_THREAD_READ;
+    __shared__ float A_shared[BLOCK_SIZE][BLOCK_SIZE];
+    __shared__ float B_shared[BLOCK_SIZE][BLOCK_SIZE];
 
-    const int B_thread_num_read_per_row = BLOCK_SIZE_N / ELE_PER_THREAD_READ;   // the thread num needed to read a row
-    const int B_row_stride = block_thread_num / B_thread_num_read_per_row;      // after all threads finish reading, we move down for next sub-block
-    
-    int B_read_row_offset = tid / B_thread_num_read_per_row;
-    int B_read_col_start = (tid % B_thread_num_read_per_row) * ELE_PER_THREAD_READ;
+    for (int tile_idx = 0; tile_idx < K; tile_idx += BLOCK_SIZE) {
 
-    __shared__ float A_shared[BLOCK_SIZE_M][BLOCK_SIZE_K];
-    __shared__ float B_shared[BLOCK_SIZE_K][BLOCK_SIZE_N];
-    
-    for (int tile_k_id = 0; tile_k_id < int(k / BLOCK_SIZE_K); ++tile_k_id) {
+        // Get sub-(block)-matrix Asub (upper-left corner) of A
+        float *Asub = A + blockIdx.y * (BLOCK_SIZE * K) + tile_idx;  
+        // Get sub-(block)-matrix Bsub (upper-left corner) of B
+        float *Bsub = B + tile_idx * N + blockIdx.x * BLOCK_SIZE;  
 
-        // Get sub-matrix Asub (upper-left corner) of A
-        float *Asub = d_A + blockIdx.y * (BLOCK_SIZE_M * k) + tile_k_id * BLOCK_SIZE_K;   // can only access blockIdx.y
-        // Get sub-matrix Bsub (upper-left corner) of B
-        float *Bsub = d_B + tile_k_id * (BLOCK_SIZE_K * n) + blockIdx.x * BLOCK_SIZE_N;   // can only access blockIdx.x
-
-        // load A_shared
+        // Load Asub and Bsub from device memory to shared memory
+        // Each thread loads (ELE_PER_THREAD_ROW * ELE_PER_THREAD_COL) `consective` element of each sub-matrix
+        // :star: use thread.y, thread.x to map the location of shared memory
         #pragma unroll
-        for (int start_row = 0; start_row < BLOCK_SIZE_M; start_row += A_row_stride) {
-            int read_row = start_row + A_read_row_offset;
-            #pragma unroll
-            for (int ele_offset = 0; ele_offset < ELE_PER_THREAD_READ; ++ele_offset) {
-                int read_col = A_read_col_start + ele_offset;
-                A_shared[read_row][read_col] = Asub[read_row * lda + read_col];
-            }
+        for (int row_offset = 0; row_offset < ELE_PER_THREAD_ROW; ++row_offset) {
+            int row_in_shared = thread_row * ELE_PER_THREAD_ROW + row_offset;
+            FETCH_FLOAT4(A_shared[row_in_shared][4 * thread_col]) = FETCH_FLOAT4(Asub[OFFSET(row_in_shared, 4 * thread_col, K)]);
+            FETCH_FLOAT4(B_shared[row_in_shared][4 * thread_col]) = FETCH_FLOAT4(Bsub[OFFSET(row_in_shared, 4 * thread_col, N)]);
         }
-        
-        // load B_shared
-        #pragma unroll
-        for (int start_row = 0; start_row < BLOCK_SIZE_K; start_row += B_row_stride) {
-            int read_row = start_row + B_read_row_offset;
-            #pragma unroll
-            for (int ele_offset = 0; ele_offset < ELE_PER_THREAD_READ; ++ele_offset) {
-                int read_col = B_read_col_start + ele_offset;
-                B_shared[read_row][read_col] = Bsub[read_row * ldb + read_col];
-            }
-        }
-
         // ======== load done ======= //
 
         // Synchronize to make sure the sub-matrices are loaded
@@ -152,20 +116,40 @@ __global__ void gemm_optim5_2(int m, int k, int n, float *d_A, float *d_B, float
         __syncthreads();
 
         // each thread is responsible for an `expanded` area
-        // [row_in_block * ELE_PER_THREAD_ROW:(row_in_block + 1) * ELE_PER_THREAD_ROW][col_in_block * ELE_PER_THREAD_COL:(col_in_block + 1) * ELE_PER_THREAD_COL]
+        // [thread_row * ELE_PER_THREAD_ROW:(thread_row + 1) * ELE_PER_THREAD_ROW][thread_col * ELE_PER_THREAD_COL:(thread_col + 1) * ELE_PER_THREAD_COL]
+        
+        // ========== v1 ========== //
+        // #pragma unroll
+        // for (int row_offset = 0; row_offset < ELE_PER_THREAD_ROW; ++row_offset) {
+        //     #pragma unroll
+        //     for (int col_offset = 0; col_offset < ELE_PER_THREAD_COL; ++col_offset) {
+        //         int row_in_shared = thread_row * ELE_PER_THREAD_ROW + row_offset;
+        //         int col_in_shared = thread_col * ELE_PER_THREAD_COL + col_offset;
+        //         #pragma unroll
+        //         for (int i = 0; i < BLOCK_SIZE; ++i) {
+        //             // register level writing
+        //             C_value[row_offset][col_offset] += A_shared[row_in_shared][i] * B_shared[i][col_in_shared];
+        //         }
+        //     }
+        // }
+        
+        // ========== v2 ========== //
+        // I find v2 is slightly faster (3860 vs. 3680 GFLOPs) than v1. Maybe we should explicitly unroll as many as possible? 
         #pragma unroll
         for (int row_offset = 0; row_offset < ELE_PER_THREAD_ROW; ++row_offset) {
+            int row_in_shared = thread_row * ELE_PER_THREAD_ROW + row_offset;
+            int col_in_shared = thread_col * 4;
             #pragma unroll
-            for (int col_offset = 0; col_offset < ELE_PER_THREAD_COL; ++col_offset) {
-                int row_in_shared = thread_row * ELE_PER_THREAD_ROW + row_offset;
-                int col_in_shared = thread_col * ELE_PER_THREAD_COL + col_offset;
-                #pragma unroll
-                for (int i = 0; i < BLOCK_SIZE_K; ++i) {
-                    // register level writing
-                    C_value[row_offset][col_offset] += A_shared[row_in_shared][i] * B_shared[i][col_in_shared];
-                }
-            }
+            for (int i = 0; i < BLOCK_SIZE; ++i) {
+                // register level writing
+                // C_value[row_offset][col_offset] += A_shared[row_in_shared][i] * B_shared[i][col_in_shared];
+                C_value[row_offset][0] += A_shared[row_in_shared][i] * B_shared[i][col_in_shared];
+                C_value[row_offset][1] += A_shared[row_in_shared][i] * B_shared[i][col_in_shared + 1];
+                C_value[row_offset][2] += A_shared[row_in_shared][i] * B_shared[i][col_in_shared + 2];
+                C_value[row_offset][3] += A_shared[row_in_shared][i] * B_shared[i][col_in_shared + 3];
+            }   
         }
+
 
         // Synchronize to make sure that the preceding
         // computation is done before loading two new
@@ -178,36 +162,29 @@ __global__ void gemm_optim5_2(int m, int k, int n, float *d_A, float *d_B, float
     // :star: use row and col to map the location of global memory
     #pragma unroll
     for (int row_offset = 0; row_offset < ELE_PER_THREAD_ROW; ++row_offset) {
-        #pragma unroll
-        for (int col_offset = 0; col_offset < ELE_PER_THREAD_COL; ++col_offset) {
-            int row_in_C = row * ELE_PER_THREAD_ROW + row_offset;
-            int col_in_C = col * ELE_PER_THREAD_COL + col_offset;
-            
-            d_C[row_in_C * ldc + col_in_C] = C_value[row_offset][col_offset];   // d_C(row_in_C, col_in_C)
-        }
+        int row_in_C = row * ELE_PER_THREAD_ROW + row_offset;
+        int col_in_C = col * 4;
+        FETCH_FLOAT4(C[OFFSET(row_in_C, col_in_C, N)]) = FETCH_FLOAT4(C_value[row_offset]);   // d_C(row_in_C, col_in_C)   
     }
 
 }
 
-// 疑问：为什么BLOCK_SIZE_K = 32正常跑，BLOCK_SIZE_K=8反而报“GPUassert: too many resources requested for launch”？
-void MMult_optim5_2(cublasHandle_t handle, int m, int k, int n, float *d_A, float *d_B, float *d_C, int lda, int ldb, int ldc) {
+void MMult_optim5_2(cublasHandle_t handle, float *A, float *B, float *C, int M, int K, int N) {
 
     // params really matters:
-    // BLOCK_SIZE_M, BLOCK_SIZE_N, BLOCK_SIZE_K, ELE_PER_THREAD_ROW, ELE_PER_THREAD_COL = 64, 64, 64, 4, 4 ~ 2450GFLOPs
-    // BLOCK_SIZE_M, BLOCK_SIZE_N, BLOCK_SIZE_K, ELE_PER_THREAD_ROW, ELE_PER_THREAD_COL = 
+    // BLOCK_SIZE, ELE_PER_THREAD_ROW, ELE_PER_THREAD_COL = 64, 4, 4 => ~2000GFLOPs
+    // BLOCK_SIZE, ELE_PER_THREAD_ROW, ELE_PER_THREAD_COL = 64, 8, 8 => ~200GFLOPs
+    // BLOCK_SIZE, ELE_PER_THREAD_ROW, ELE_PER_THREAD_COL = 32, 4, 4 => ~1300GFLOPs
 
     // const int BLOCK_SIZE = 16;
-    const int BLOCK_SIZE_M = 128;
-    const int BLOCK_SIZE_N = 128;
-    const int BLOCK_SIZE_K = 32;
+    const int BLOCK_SIZE = 64;   // BLOCK_SIZE matters
     const int ELE_PER_THREAD_ROW = 4;
-    const int ELE_PER_THREAD_COL = 4;
-    const int ELE_PER_THREAD_READ = 4;
+    const int ELE_PER_THREAD_COL = 4; // load (set 4 here because we use float4) and compute (equal to load number in squared block) ELE_PER_THREAD_COL elements in x dimension
+    // const int BLOCK_SIZE = 128;   // error: uses too much shared data 
+    dim3 dimBlock(BLOCK_SIZE / ELE_PER_THREAD_COL, BLOCK_SIZE / ELE_PER_THREAD_ROW);
+    dim3 dimGrid((N + BLOCK_SIZE - 1) / BLOCK_SIZE, (M + BLOCK_SIZE - 1) / BLOCK_SIZE);
 
-    dim3 dimBlock(BLOCK_SIZE_N / ELE_PER_THREAD_COL, BLOCK_SIZE_M / ELE_PER_THREAD_ROW);
-    dim3 dimGrid((m + BLOCK_SIZE_N - 1) / BLOCK_SIZE_N, (n + BLOCK_SIZE_M - 1) / BLOCK_SIZE_M);
-
-    gemm_optim5_2<BLOCK_SIZE_M, BLOCK_SIZE_N, BLOCK_SIZE_K, ELE_PER_THREAD_ROW, ELE_PER_THREAD_COL, ELE_PER_THREAD_READ> <<<dimGrid, dimBlock>>>(m, k, n, d_A, d_B, d_C, lda, ldb, ldc);
-    gpuErrchk( cudaPeekAtLastError() );
-    gpuErrchk( cudaDeviceSynchronize() );
+    gemm_kernel_optim5_2<BLOCK_SIZE, ELE_PER_THREAD_ROW, ELE_PER_THREAD_COL> <<<dimGrid, dimBlock>>>(A, B, C, M, K, N);
+    // gpuErrchk( cudaPeekAtLastError() );
+    // gpuErrchk( cudaDeviceSynchronize() );
 }

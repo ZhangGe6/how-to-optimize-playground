@@ -1,17 +1,6 @@
-
-#include <iostream>
-#include <random>
-#include "params.h"
 #include "utils.h"
 
-void allocate_space(int m, int k, int n, float *matA, float *matB, float *matC){
-    matA = (float*) malloc(m * k * sizeof(float));
-    matB = (float*) malloc(k * n * sizeof(float));
-    matC = (float*) malloc(m * n * sizeof(float));
-    // print_matrix(m, n, mat, n);
-}
-
-void random_matrix(int m, int n, float *mat, int ldm){
+void random_matrix(float *mat, int m, int n){
     // https://techiedelight.com/compiler/
 	std::random_device rd;
 	std::mt19937 gen(rd());
@@ -19,26 +8,25 @@ void random_matrix(int m, int n, float *mat, int ldm){
 
     for (int i = 0; i < m; ++i){
         for (int j = 0; j < n; ++j)
-            mat(i, j) = dist(gen);
-            // mat(i, j) = (float) (i + 1);
-            // mat(i, j) = 1;
+            // mat[OFFSET(i, j, n)] = dist(gen);
+            mat[OFFSET(i, j, n)] = 1;
     }
     // print_matrix(m, n, mat, n);
 }
 
-void zero_matrix(int m, int n, float *mat, int ldm){
+void zero_matrix(float *mat, int m, int n){
     for (int i = 0; i < m; ++i){
         for (int j = 0; j < n; ++j)
-            mat(i, j) = (float) 0;
+            mat[OFFSET(i, j, n)] = (float) 0;
     }
     // print_matrix(m, n, mat, n);
 }
 
-void print_matrix(int m, int n, float *mat, int ldm){
+void print_matrix(float *mat, int m, int n){
     for (int i = 0; i < m; ++i){
         for (int j = 0; j < n; ++j){
             //std::cout<<mat(i, j)<<" ";
-            printf("%f\t", mat(i, j));
+            printf("%f\t", mat[OFFSET(i, j, n)]);
         }
         // std::cout<<std::endl;
         printf("\n");
@@ -46,11 +34,11 @@ void print_matrix(int m, int n, float *mat, int ldm){
     printf("\n");   
 }
 
-float compare_matrix(int m, int n, float *mat, float *mat2, int ldm){
-    float max_diff = 0, diff;
+float compare_matrix(float *mat1, float *mat2, int m, int n){
+    float diff, max_diff = 0;
     for (int i = 0; i < m; ++i){
         for (int j = 0; j < n; ++j){
-            diff = abs(mat(i, j) - mat2(i, j));
+            diff = abs(mat1[OFFSET(i, j, n)] - mat2[OFFSET(i, j, n)]);
             max_diff = diff > max_diff ? diff : max_diff;
         }
     }

@@ -2,171 +2,133 @@
 #include "utils.h"
 #include "MMult.h"
 
-// cal offset from row col and ld , in row-major matrix, ld is the width of the matrix
-#define OFFSET(row, col, ld) ((row) * (ld) + (col))
+// block into register and compute
 
-// transfer float4
-#define FETCH_FLOAT4(pointer) (reinterpret_cast<float4*>(&(pointer))[0])
-// the base version from https://github1s.com/Cjkkkk/CUDA_gemm/blob/HEAD/src/cuda/dense.cu
-template <
-    const int BLOCK_SIZE_M,  // width of block of C that each thread block calculate
-    const int BLOCK_SIZE_K,  // height of block of A that each thread block load into shared memory
-    const int BLOCK_SIZE_N,  // height of block of C that each thread block calculate
-    const int THREAD_SIZE_Y, // height of block of C that each thread calculate
-    const int THREAD_SIZE_X,  // width of block of C that each thread calculate
-    const bool ENABLE_DOUBLE_BUFFER // whether enable double buffering or not
-    > 
-__global__ void gemm_optim6_1( 
-    float * __restrict__ A,
-    float * __restrict__ B,
-    float * __restrict__ C,
-    const int M,
-    const int K,
-    const int N,
-    float alpha,
-    float beta
-    ) 
-    {
-    // Block index
-    int bx = blockIdx.x;
-    int by = blockIdx.y;
+// based on gemm_kernel_optim5_2
+// but slightly slower than gemm_kernel_optim5_2 (3820 vs. 3860 FLOPs)
+template <int BLOCK_SIZE, int ELE_PER_THREAD_ROW, int ELE_PER_THREAD_COL> 
+__global__ void gemm_kernel_optim6_1(float *A, float *B, float *C, int M, int K, int N) {
+    int row = blockIdx.y * blockDim.y + threadIdx.y;
+    int col = blockIdx.x * blockDim.x + threadIdx.x;   // Note `row` and `col` are the index of threads, they are not on pair with the matrix element index in this version
 
-    // Thread index
-    int tx = threadIdx.x;
-    int ty = threadIdx.y;
-    
-    // size of thread block
-    const int bszx = BLOCK_SIZE_N / THREAD_SIZE_X;
-    const int bszy = BLOCK_SIZE_M / THREAD_SIZE_Y;
-    const int THREAD_NUM_PER_BLOCK = bszy * bszx;
+    int thread_row = threadIdx.y;
+    int thread_col = threadIdx.x;
 
-    // thread id
-    const int tid = ty * bszx + tx;
-
-    // shared memory
-
-    __shared__ float As[BLOCK_SIZE_M][BLOCK_SIZE_K]; // avoid bank conflict
-    __shared__ float Bs[BLOCK_SIZE_K][BLOCK_SIZE_N];
-    // registers for C
-    float accum[THREAD_SIZE_Y][THREAD_SIZE_X] = {0};
+    // float4 C_value[ELE_PER_THREAD_ROW] = {{0, 0, 0, 0}};
+    // ELE_PER_THREAD_COL == 4 here
+    float C_value[ELE_PER_THREAD_ROW][ELE_PER_THREAD_COL] = {{0, 0, 0, 0}};
     // registers for A and B
-    float frag_a[THREAD_SIZE_Y];
-    float frag_b[THREAD_SIZE_X];
-    
-    // threads needed to load one row of tile
-    // / 4 is because float4 is used
-    const int A_TILE_THREAD_PER_ROW = BLOCK_SIZE_K / 4;
-    const int B_TILE_THREAD_PER_ROW = BLOCK_SIZE_N / 4;
-    
-    // row number and col number that needs to be loaded by this thread
-    const int A_TILE_ROW_START = tid / A_TILE_THREAD_PER_ROW;
-    const int B_TILE_ROW_START = tid / B_TILE_THREAD_PER_ROW;
+    float frag_a[ELE_PER_THREAD_ROW];
+    float frag_b[ELE_PER_THREAD_COL];
 
-    const int A_TILE_COL = tid % A_TILE_THREAD_PER_ROW * 4;
-    const int B_TILE_COL = tid % B_TILE_THREAD_PER_ROW * 4;
-    
-    // row stride that thread uses to load multiple rows of a tile
-    const int A_TILE_ROW_STRIDE = THREAD_NUM_PER_BLOCK / A_TILE_THREAD_PER_ROW;
-    const int B_TILE_ROW_STRIDE = THREAD_NUM_PER_BLOCK / B_TILE_THREAD_PER_ROW;
-    
+    __shared__ float A_shared[BLOCK_SIZE][BLOCK_SIZE];
+    __shared__ float B_shared[BLOCK_SIZE][BLOCK_SIZE];
 
-    // load C
-    // #pragma unroll
-    // for (int thread_y = 0; thread_y < THREAD_SIZE_Y; ++thread_y) {
-    //     #pragma unroll
-    //     for (int thread_x = 0; thread_x < THREAD_SIZE_X; thread_x+=4) {
-    //         FETCH_FLOAT4(accum[thread_y][thread_x]) = FETCH_FLOAT4(C[OFFSET(
-    //             BLOCK_SIZE_M * by + ty * THREAD_SIZE_Y + thread_y,
-    //             BLOCK_SIZE_N * bx + tx * THREAD_SIZE_X + thread_x,
-    //             N)]);
-    //     }
-    // }
+    for (int tile_idx = 0; tile_idx < K; tile_idx += BLOCK_SIZE) {
 
-    // can not unroll since K can not be determined at this point
-    for (int tile_idx = 0 ; tile_idx < K ; tile_idx += BLOCK_SIZE_K) {
-        // load A from global memory to shared memory
+        // Get sub-(block)-matrix Asub (upper-left corner) of A
+        float *Asub = A + blockIdx.y * (BLOCK_SIZE * K) + tile_idx;  
+        // Get sub-(block)-matrix Bsub (upper-left corner) of B
+        float *Bsub = B + tile_idx * N + blockIdx.x * BLOCK_SIZE;  
+
+        // Load Asub and Bsub from device memory to shared memory
+        // Each thread loads (ELE_PER_THREAD_ROW * ELE_PER_THREAD_COL) `consective` element of each sub-matrix
+        // :star: use thread.y, thread.x to map the location of shared memory
         #pragma unroll
-        for ( int i = 0 ; i < BLOCK_SIZE_M ; i += A_TILE_ROW_STRIDE) {
-            FETCH_FLOAT4(As[A_TILE_ROW_START + i][A_TILE_COL]) = FETCH_FLOAT4(A[OFFSET(
-                    BLOCK_SIZE_M * by + A_TILE_ROW_START + i, // row
-                    A_TILE_COL + tile_idx, // col
-                    K )]);
+        for (int row_offset = 0; row_offset < ELE_PER_THREAD_ROW; ++row_offset) {
+            int row_in_shared = thread_row * ELE_PER_THREAD_ROW + row_offset;
+            FETCH_FLOAT4(A_shared[row_in_shared][4 * thread_col]) = FETCH_FLOAT4(Asub[OFFSET(row_in_shared, 4 * thread_col, K)]);
+            FETCH_FLOAT4(B_shared[row_in_shared][4 * thread_col]) = FETCH_FLOAT4(Bsub[OFFSET(row_in_shared, 4 * thread_col, N)]);
         }
+        // ======== load done ======= //
 
-        // load B from global memory to shared memory
-        #pragma unroll
-        for ( int i = 0 ; i < BLOCK_SIZE_K; i += B_TILE_ROW_STRIDE) {
-            FETCH_FLOAT4(Bs[B_TILE_ROW_START + i][B_TILE_COL]) = FETCH_FLOAT4(B[OFFSET(
-                    tile_idx + B_TILE_ROW_START + i, // row
-                    B_TILE_COL + BLOCK_SIZE_N * bx, // col
-                    N )]);
-        }
-    
+        // Synchronize to make sure the sub-matrices are loaded
+        // before starting the computation
         __syncthreads();
 
-        // compute c
-        #pragma unroll
-        for (int k = 0; k < BLOCK_SIZE_K; ++ k) {
+        // each thread is responsible for an `expanded` area
+        // [thread_row * ELE_PER_THREAD_ROW:(thread_row + 1) * ELE_PER_THREAD_ROW][thread_col * ELE_PER_THREAD_COL:(thread_col + 1) * ELE_PER_THREAD_COL]
+        // ========== v1 ========== //
+        // for (int i = 0; i < BLOCK_SIZE; ++i) {
+        //     // load A from shared memory to register
+        //     #pragma unroll
+        //     for (int row_offset = 0; row_offset < ELE_PER_THREAD_ROW; ++row_offset) {
+        //         frag_a[row_offset] = A_shared[thread_row * ELE_PER_THREAD_ROW + row_offset][i];
+        //     }
+
+        //     // load B from shared memory to register
+        //     #pragma unroll
+        //     for (int col_offset = 0; col_offset < ELE_PER_THREAD_COL; ++col_offset) {
+        //         frag_b[col_offset] = B_shared[i][thread_col * ELE_PER_THREAD_COL + col_offset];
+        //     }
+            
+        //     #pragma unroll
+        //     for (int row_offset = 0; row_offset < ELE_PER_THREAD_ROW; ++row_offset) {
+        //         #pragma unroll
+        //         for (int col_offset = 0; col_offset < ELE_PER_THREAD_COL; ++col_offset) {
+        //             C_value[row_offset][col_offset] += frag_a[row_offset] * frag_b[col_offset];
+        //         }
+        //     }
+        // }
+
+        // ========== v2 ========== //
+        // faster than v1, similer to MMult_optim5_2
+        for (int i = 0; i < BLOCK_SIZE; ++i) {
             // load A from shared memory to register
             #pragma unroll
-            for (int thread_y = 0; thread_y < THREAD_SIZE_Y; ++thread_y) {
-                frag_a[thread_y] = As[ty * THREAD_SIZE_Y + thread_y][k];
+            for (int row_offset = 0; row_offset < ELE_PER_THREAD_ROW; ++row_offset) {
+                frag_a[row_offset] = A_shared[thread_row * ELE_PER_THREAD_ROW + row_offset][i];
             }
 
             // load B from shared memory to register
-            #pragma unroll
-            for (int thread_x = 0; thread_x < THREAD_SIZE_X; ++thread_x) {
-                frag_b[thread_x] = Bs[k][THREAD_SIZE_X * tx + thread_x];
-            }
+            frag_b[0] = B_shared[i][thread_col * ELE_PER_THREAD_COL];
+            frag_b[1] = B_shared[i][thread_col * ELE_PER_THREAD_COL + 1];
+            frag_b[2] = B_shared[i][thread_col * ELE_PER_THREAD_COL + 2];
+            frag_b[3] = B_shared[i][thread_col * ELE_PER_THREAD_COL + 3];
             
             #pragma unroll
-            for (int thread_y = 0; thread_y < THREAD_SIZE_Y; ++thread_y) {
-                #pragma unroll
-                for (int thread_x = 0; thread_x < THREAD_SIZE_X; ++thread_x) {
-                    accum[thread_y][thread_x] += frag_a[thread_y] * frag_b[thread_x];
-                }
+            for (int row_offset = 0; row_offset < ELE_PER_THREAD_ROW; ++row_offset) {
+                C_value[row_offset][0] += frag_a[row_offset] * frag_b[0];
+                C_value[row_offset][1] += frag_a[row_offset] * frag_b[1];
+                C_value[row_offset][2] += frag_a[row_offset] * frag_b[2];
+                C_value[row_offset][3] += frag_a[row_offset] * frag_b[3];
             }
-            
         }
-        __syncthreads();
+
+        // Synchronize to make sure that the preceding
+        // computation is done before loading two new
+        // sub-matrices of A and B in the next iteration
+        // TODO: without this, the results are calculated more efficiently and still correctly
+        __syncthreads();  
     }
 
-    // store back to C
+    // let's comprehend the following code in a global C matrix view 
+    // :star: use row and col to map the location of global memory
     #pragma unroll
-    for (int thread_y = 0; thread_y < THREAD_SIZE_Y; ++thread_y) {
-        #pragma unroll
-        for (int thread_x = 0; thread_x < THREAD_SIZE_X; thread_x+=4) {
-            accum[thread_y][thread_x] *= alpha;
-            accum[thread_y][thread_x + 1] *= alpha;
-            accum[thread_y][thread_x + 2] *= alpha;
-            accum[thread_y][thread_x + 3] *= alpha;
-            FETCH_FLOAT4(C[OFFSET(
-                BLOCK_SIZE_M * by + ty * THREAD_SIZE_Y + thread_y,
-                BLOCK_SIZE_N * bx + tx * THREAD_SIZE_X + thread_x,
-                N)]) = FETCH_FLOAT4(accum[thread_y][thread_x]);
-        }
+    for (int row_offset = 0; row_offset < ELE_PER_THREAD_ROW; ++row_offset) {
+        int row_in_C = row * ELE_PER_THREAD_ROW + row_offset;
+        int col_in_C = col * 4;
+        FETCH_FLOAT4(C[OFFSET(row_in_C, col_in_C, N)]) = FETCH_FLOAT4(C_value[row_offset]);   // d_C(row_in_C, col_in_C)   
     }
+
 }
 
-void MMult_optim6_1(cublasHandle_t handle, float *A, float *B, float *C, const int M, const int K, const int N, float alpha, float beta) {
+void MMult_optim6_1(cublasHandle_t handle, float *A, float *B, float *C, int M, int K, int N) {
 
     // params really matters:
-    // BLOCK_SIZE_M, BLOCK_SIZE_N, BLOCK_SIZE_K, ELE_PER_THREAD_ROW, ELE_PER_THREAD_COL = 64, 64, 64, 4, 4 ~ 2450GFLOPs
-    // BLOCK_SIZE_M, BLOCK_SIZE_N, BLOCK_SIZE_K, ELE_PER_THREAD_ROW, ELE_PER_THREAD_COL = 
+    // BLOCK_SIZE, ELE_PER_THREAD_ROW, ELE_PER_THREAD_COL = 64, 4, 4 => ~2000GFLOPs
+    // BLOCK_SIZE, ELE_PER_THREAD_ROW, ELE_PER_THREAD_COL = 64, 8, 8 => ~200GFLOPs
+    // BLOCK_SIZE, ELE_PER_THREAD_ROW, ELE_PER_THREAD_COL = 32, 4, 4 => ~1300GFLOPs
 
     // const int BLOCK_SIZE = 16;
-    const int BLOCK_SIZE_M = 128;
-    const int BLOCK_SIZE_K = 32;
-    const int BLOCK_SIZE_N = 128;
-    const int THREAD_SIZE_Y = 8;
-    const int THREAD_SIZE_X = 8;
-    // const int ELE_PER_THREAD_READ = 4;
-    const bool ENABLE_DOUBLE_BUFFER = false;
+    const int BLOCK_SIZE = 64;   // BLOCK_SIZE matters
+    const int ELE_PER_THREAD_ROW = 4;
+    const int ELE_PER_THREAD_COL = 4; // load (set 4 here because we use float4) and compute (equal to load number in squared block) ELE_PER_THREAD_COL elements in x dimension
+    // const int BLOCK_SIZE = 128;   // error: uses too much shared data 
+    dim3 dimBlock(BLOCK_SIZE / ELE_PER_THREAD_COL, BLOCK_SIZE / ELE_PER_THREAD_ROW);
+    dim3 dimGrid((N + BLOCK_SIZE - 1) / BLOCK_SIZE, (M + BLOCK_SIZE - 1) / BLOCK_SIZE);
 
-    dim3 dimBlock(BLOCK_SIZE_N / THREAD_SIZE_X, BLOCK_SIZE_M / THREAD_SIZE_Y);
-    dim3 dimGrid((M + BLOCK_SIZE_N - 1) / BLOCK_SIZE_N, (N + BLOCK_SIZE_M - 1) / BLOCK_SIZE_M);
-
-    gemm_optim6_1<BLOCK_SIZE_M, BLOCK_SIZE_K, BLOCK_SIZE_N, THREAD_SIZE_Y, THREAD_SIZE_X, ENABLE_DOUBLE_BUFFER> <<<dimGrid, dimBlock>>>(A, B, C, M, K, N, alpha, beta);
-    gpuErrchk( cudaPeekAtLastError() );
-    gpuErrchk( cudaDeviceSynchronize() );
+    gemm_kernel_optim6_1<BLOCK_SIZE, ELE_PER_THREAD_ROW, ELE_PER_THREAD_COL> <<<dimGrid, dimBlock>>>(A, B, C, M, K, N);
+    // gpuErrchk( cudaPeekAtLastError() );
+    // gpuErrchk( cudaDeviceSynchronize() );
 }
