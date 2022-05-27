@@ -5,7 +5,7 @@
 int main() {
     FILE *fptr;
     // fptr = fopen("../res/MMult_base.txt","w");
-    fptr = fopen("../res/MMult_optim4_3.txt", "w");
+    fptr = fopen("../res/MMult_optim6_2.txt", "w");
     if(fptr == NULL)
     {
         printf("Error open file!");   
@@ -54,7 +54,13 @@ int main() {
 
             // MMult_optim4_1(A, B, C_optim, M, K, N);
             // MMult_optim4_2(A, B, C_optim, M, K, N);
-            MMult_optim4_3(A, B, C_optim, M, K, N);
+            // MMult_optim4_3(A, B, C_optim, M, K, N);
+            // MMult_optim4_4(A, B, C_optim, M, K, N);
+
+            // MMult_optim5_1(A, B, C_optim, M, K, N);
+
+            // MMult_optim6_1(A, B, C_optim, M, K, N);
+            MMult_optim6_2(A, B, C_optim, M, K, N);
 
 
 

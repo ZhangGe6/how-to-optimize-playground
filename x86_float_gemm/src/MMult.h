@@ -11,7 +11,6 @@ void MMult_optim1_2(float *A, float *B, float *C, int M, int K, int N);
 void MMult_optim2_1(float *A, float *B, float *C, int M, int K, int N);
 
 // unroll
-// use #pragma unroll
 void MMult_optim3_1(float *A, float *B, float *C, int M, int K, int N);
 void MMult_optim3_2(float *A, float *B, float *C, int M, int K, int N);
 void MMult_optim3_3(float *A, float *B, float *C, int M, int K, int N);
@@ -22,8 +21,17 @@ void MMult_optim3_5(float *A, float *B, float *C, int M, int K, int N);
 void MMult_optim4_1(float *A, float *B, float *C, int M, int K, int N);
 void MMult_optim4_2(float *A, float *B, float *C, int M, int K, int N);
 void MMult_optim4_3(float *A, float *B, float *C, int M, int K, int N);
+void MMult_optim4_4(float *A, float *B, float *C, int M, int K, int N);
+
+// use pointer to reduce indexing overhead
+void MMult_optim5_1(float *A, float *B, float *C, int M, int K, int N);
 
 // use [vector] registers (SIMD)
+void MMult_optim6_1(float *A, float *B, float *C, int M, int K, int N);
+void MMult_optim6_2(float *A, float *B, float *C, int M, int K, int N);
+
+
+
 
 // cache blocking
 

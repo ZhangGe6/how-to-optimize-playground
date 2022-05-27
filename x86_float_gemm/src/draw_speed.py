@@ -1,6 +1,7 @@
 import os
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+plt.figure(figsize=(12.8, 9.6))
 
 # change it according to our machine
 peak_GFlops_ps = 10 # a tempory one here
@@ -12,7 +13,8 @@ plt.ylabel('GFlops')
 methods = [
             'MMult_base', 'MMult_optim1_1', 'MMult_optim2_1',
             'MMult_optim3_1', 'MMult_optim3_2', 'MMult_optim3_3', 'MMult_optim3_4', #'MMult_optim3_4'
-            'MMult_optim4_1', 'MMult_optim4_2', 'MMult_optim4_3'
+            'MMult_optim4_1', 'MMult_optim4_2', 'MMult_optim4_3', 'MMult_optim4_4',
+            'MMult_optim5_1',
         ]
 
 colors = dict(mcolors.BASE_COLORS, **mcolors.CSS4_COLORS)

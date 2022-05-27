@@ -17,15 +17,13 @@
 #include <xmmintrin.h>  // SSE
 #include <emmintrin.h>  // SSE2
 #include <pmmintrin.h>  // SSE3
-// __m128d is a data type that the compiler will hopefully store in a XMM 128 bit register when optimizing
-// https://stackoverflow.com/questions/53757633/what-is-m128d
+
 // https://zhuanlan.zhihu.com/p/55327037
-// 2 double, 4 float, ...
 // union: https://www.runoob.com/cprogramming/c-unions.html
 typedef union {
-    __m128d reg;    
-    double value[2];
-} v2d_regv;
+    __m128 reg;    
+    float value[4];
+} v2f_regv;
 
 // #define blockSize 40
 // #define mBlockSize 40
