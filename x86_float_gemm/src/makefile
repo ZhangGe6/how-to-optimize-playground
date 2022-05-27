@@ -19,5 +19,5 @@ test_MMult.x: $(BUILD)/main.o  $(BUILD)/utils.o $(MulMethod_OBJs)
 	$(CC) $(LDFLAGS)  $^ -o $@ 
 
 clean:
-	rm -rf ./build
-	mkdir ./build
+	rm -rf ../build
+	mkdir ../build

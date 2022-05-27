@@ -4,13 +4,24 @@
 void MMult_base(float *A, float *B, float *C, int M, int K, int N);
 
 // change loop order
+void MMult_optim1_1(float *A, float *B, float *C, int M, int K, int N);
+void MMult_optim1_2(float *A, float *B, float *C, int M, int K, int N);
 
 // save C_value in register and write the result back to cache only once
+void MMult_optim2_1(float *A, float *B, float *C, int M, int K, int N);
 
 // unroll
-// why it helps: https://www.sciencedirect.com/topics/computer-science/loop-unrolling
+// use #pragma unroll
+void MMult_optim3_1(float *A, float *B, float *C, int M, int K, int N);
+void MMult_optim3_2(float *A, float *B, float *C, int M, int K, int N);
+void MMult_optim3_3(float *A, float *B, float *C, int M, int K, int N);
+void MMult_optim3_4(float *A, float *B, float *C, int M, int K, int N);
+void MMult_optim3_5(float *A, float *B, float *C, int M, int K, int N);
 
 // use more register
+void MMult_optim4_1(float *A, float *B, float *C, int M, int K, int N);
+void MMult_optim4_2(float *A, float *B, float *C, int M, int K, int N);
+void MMult_optim4_3(float *A, float *B, float *C, int M, int K, int N);
 
 // use [vector] registers (SIMD)
 

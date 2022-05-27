@@ -4,8 +4,8 @@
 
 int main() {
     FILE *fptr;
-    fptr = fopen("../res/MMul_base.txt","w");
-    // fptr = fopen("../res/MMul_optim9_1.txt", "w");
+    // fptr = fopen("../res/MMult_base.txt","w");
+    fptr = fopen("../res/MMult_optim4_3.txt", "w");
     if(fptr == NULL)
     {
         printf("Error open file!");   
@@ -42,7 +42,21 @@ int main() {
             zero_matrix(C_optim, M, N);  // because we are doing an [inplace] adding operation on C_optim, so we need to initialize C_optim every iter
             float start = clock();
 
-            MMult_base(A, B, C_optim, M, K, N);
+            // MMult_base(A, B, C_optim, M, K, N);
+            // MMult_optim1_1(A, B, C_optim, M, K, N);
+            // MMult_optim1_2(A, B, C_optim, M, K, N);
+            // MMult_optim2_1(A, B, C_optim, M, K, N);
+            // MMult_optim3_1(A, B, C_optim, M, K, N);
+            // MMult_optim3_2(A, B, C_optim, M, K, N);
+            // MMult_optim3_3(A, B, C_optim, M, K, N);
+            // MMult_optim3_4(A, B, C_optim, M, K, N);
+            // MMult_optim3_5(A, B, C_optim, M, K, N);
+
+            // MMult_optim4_1(A, B, C_optim, M, K, N);
+            // MMult_optim4_2(A, B, C_optim, M, K, N);
+            MMult_optim4_3(A, B, C_optim, M, K, N);
+
+
 
             // https://stackoverflow.com/a/459704/10096987
             float elapsed_seconds = (clock() - start) / CLOCKS_PER_SEC;
