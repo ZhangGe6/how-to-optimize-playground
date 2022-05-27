@@ -1,39 +1,39 @@
 #include <stdio.h>
 
 // naive version
-void MMult_base(float *A, float *B, float *C, int M, int K, int N);
+void MMult_base(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc);
 
 // change loop order
-void MMult_optim1_1(float *A, float *B, float *C, int M, int K, int N);
-void MMult_optim1_2(float *A, float *B, float *C, int M, int K, int N);
+void MMult_optim1_1(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc);
+void MMult_optim1_2(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc);
 
 // save C_value in register and write the result back to cache only once
-void MMult_optim2_1(float *A, float *B, float *C, int M, int K, int N);
+void MMult_optim2_1(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc);
 
 // unroll
-void MMult_optim3_1(float *A, float *B, float *C, int M, int K, int N);
-void MMult_optim3_2(float *A, float *B, float *C, int M, int K, int N);
-void MMult_optim3_3(float *A, float *B, float *C, int M, int K, int N);
-void MMult_optim3_4(float *A, float *B, float *C, int M, int K, int N);
-void MMult_optim3_5(float *A, float *B, float *C, int M, int K, int N);
+void MMult_optim3_1(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc);
+void MMult_optim3_2(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc);
+void MMult_optim3_3(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc);
+void MMult_optim3_4(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc);
+void MMult_optim3_5(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc);
 
 // use more register
-void MMult_optim4_1(float *A, float *B, float *C, int M, int K, int N);
-void MMult_optim4_2(float *A, float *B, float *C, int M, int K, int N);
-void MMult_optim4_3(float *A, float *B, float *C, int M, int K, int N);
-void MMult_optim4_4(float *A, float *B, float *C, int M, int K, int N);
+void MMult_optim4_1(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc);
+void MMult_optim4_2(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc);
+void MMult_optim4_3(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc);
+void MMult_optim4_4(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc);
 
 // use pointer to reduce indexing overhead
-void MMult_optim5_1(float *A, float *B, float *C, int M, int K, int N);
+void MMult_optim5_1(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc);
 
 // use [vector] registers (SIMD)
-void MMult_optim6_1(float *A, float *B, float *C, int M, int K, int N);
-void MMult_optim6_2(float *A, float *B, float *C, int M, int K, int N);
-
-
-
+void MMult_optim6_1(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc);
+void MMult_optim6_2(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc);
 
 // cache blocking
+void MMult_optim7_1(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc);
+
+
 
 // packing
 

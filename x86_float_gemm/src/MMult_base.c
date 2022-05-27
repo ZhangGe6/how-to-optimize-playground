@@ -2,7 +2,7 @@
 #include "MMult.h"
 
 // Routine for computing C = A * B
-void MMult_base(float *A, float *B, float *C, int M, int K, int N)
+void MMult_base(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc)
 {
   for (int i = 0; i < M; ++i) {
     for (int j = 0; j < N; ++j) {

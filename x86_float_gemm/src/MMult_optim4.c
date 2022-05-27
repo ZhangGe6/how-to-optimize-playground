@@ -5,33 +5,58 @@
 
 // use register for the 1x4 unrolling
 // performance boost !
-void MMult_optim4_1(float *A, float *B, float *C, int M, int K, int N)
-{
-  register float reg_c_i_j, reg_c_i_j1, reg_c_i_j2, reg_c_i_j3;
+// void MMult_optim4_1(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc)
+// {
+//   register float reg_c_i_j, reg_c_i_j1, reg_c_i_j2, reg_c_i_j3;
 
-  for (int i = 0; i < M; ++i) {
-    for (int j = 0; j < N; j += 4) {
+//   for (int i = 0; i < M; ++i) {
+//     for (int j = 0; j < N; j += 4) {
+//       reg_c_i_j = (float) 0;
+//       reg_c_i_j1 = (float) 0;
+//       reg_c_i_j2 = (float) 0;
+//       reg_c_i_j3 = (float) 0;
+      
+//       for (int p = 0; p < K; ++p) {
+//         reg_c_i_j += A(i, p) * B(p, j);
+//         reg_c_i_j1 += A(i, p) * B(p, j + 1);
+//         reg_c_i_j2 += A(i, p) * B(p, j + 2);
+//         reg_c_i_j3 += A(i, p) * B(p, j + 3);
+//       }
+//       C(i, j) = reg_c_i_j;
+//       C(i, j + 1) = reg_c_i_j1;
+//       C(i, j + 2) = reg_c_i_j2;
+//       C(i, j + 3) = reg_c_i_j3;
+//     }
+//   }
+// }
+
+void MMult_optim4_1(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc)
+{
+  register float reg_c_i_j, reg_c_i1_j, reg_c_i2_j, reg_c_i3_j;
+
+  for (int i = 0; i < M; i += 4) {
+    for (int j = 0; j < N; ++j) {
       reg_c_i_j = (float) 0;
-      reg_c_i_j1 = (float) 0;
-      reg_c_i_j2 = (float) 0;
-      reg_c_i_j3 = (float) 0;
+      reg_c_i1_j = (float) 0;
+      reg_c_i2_j = (float) 0;
+      reg_c_i3_j = (float) 0;
       
       for (int p = 0; p < K; ++p) {
         reg_c_i_j += A(i, p) * B(p, j);
-        reg_c_i_j1 += A(i, p) * B(p, j + 1);
-        reg_c_i_j2 += A(i, p) * B(p, j + 2);
-        reg_c_i_j3 += A(i, p) * B(p, j + 3);
+        reg_c_i1_j += A(i + 1, p) * B(p, j);
+        reg_c_i2_j += A(i + 2, p) * B(p, j);
+        reg_c_i3_j += A(i + 3, p) * B(p, j);
       }
       C(i, j) = reg_c_i_j;
-      C(i, j + 1) = reg_c_i_j1;
-      C(i, j + 2) = reg_c_i_j2;
-      C(i, j + 3) = reg_c_i_j3;
+      C(i + 1, j) = reg_c_i1_j;
+      C(i + 2, j) = reg_c_i2_j;
+      C(i + 3, j) = reg_c_i3_j;
     }
   }
 }
 
 // use register for the 4x4 unrolling
-void MMult_optim4_2(float *A, float *B, float *C, int M, int K, int N)
+void MMult_optim4_2(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc)
 {
   register float  c_00_reg, c_01_reg, c_02_reg, c_03_reg,  
                   c_10_reg, c_11_reg, c_12_reg, c_13_reg,  
@@ -81,7 +106,7 @@ void MMult_optim4_2(float *A, float *B, float *C, int M, int K, int N)
 
 // use register for the 4x4 unrolling + pragma unroll
 // no difference with raw `register for the 4x4 unrolling`, aka, MMult_optim4_2
-void MMult_optim4_3(float *A, float *B, float *C, int M, int K, int N)
+void MMult_optim4_3(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc)
 {
   register float  c_00_reg, c_01_reg, c_02_reg, c_03_reg,  
                   c_10_reg, c_11_reg, c_12_reg, c_13_reg,  
@@ -133,7 +158,7 @@ void MMult_optim4_3(float *A, float *B, float *C, int M, int K, int N)
 
 // use register for the 4x4 unrolling + use registers to save other values
 // nearly no performance boost
-void MMult_optim4_4(float *A, float *B, float *C, int M, int K, int N)
+void MMult_optim4_4(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc)
 {
   register float  c_00_reg, c_01_reg, c_02_reg, c_03_reg,  
                   c_10_reg, c_11_reg, c_12_reg, c_13_reg,  

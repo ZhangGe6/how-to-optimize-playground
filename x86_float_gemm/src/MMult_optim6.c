@@ -4,7 +4,7 @@
 // use [vector] registers (SIMD)
 
 // based on MMult_optim5_1. Firstly, rearrange the inner computation
-void MMult_optim6_1(float *A, float *B, float *C, int M, int K, int N)
+void MMult_optim6_1(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc)
 {
   register float  c_00_reg, c_01_reg, c_02_reg, c_03_reg,  
                   c_10_reg, c_11_reg, c_12_reg, c_13_reg,  
@@ -86,7 +86,7 @@ void MMult_optim6_1(float *A, float *B, float *C, int M, int K, int N)
 }
 
 // Then use the vector registers to combine the computations
-void MMult_optim6_2(float *A, float *B, float *C, int M, int K, int N)
+void MMult_optim6_2(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc)
 {
 //   register float  c_00_reg, c_01_reg, c_02_reg, c_03_reg,  
 //                   c_10_reg, c_11_reg, c_12_reg, c_13_reg,  

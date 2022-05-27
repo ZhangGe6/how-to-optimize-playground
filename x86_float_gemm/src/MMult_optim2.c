@@ -4,7 +4,7 @@
 
 // slightly boost
 // MMult_optim1_1 is not compatible here
-void MMult_optim2_1(float *A, float *B, float *C, int M, int K, int N)
+void MMult_optim2_1(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc)
 {
   register float C_accu;
 

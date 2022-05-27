@@ -1,8 +1,8 @@
 // About leading demension: https://www.youtube.com/watch?v=PhjildK5oO8
 // Note that I implement in a [row-major] manner
-#define A(i, j) A[(i)*(K) + (j)]
-#define B(i, j) B[(i)*(N) + (j)]
-#define C(i, j) C[(i)*(N) + (j)]
+#define A(i, j) A[(i)*(lda) + (j)]
+#define B(i, j) B[(i)*(ldb) + (j)]
+#define C(i, j) C[(i)*(ldc) + (j)]
 #define mat(i, j) mat[(i)*(N) + (j)]
 #define mat2(i, j) mat2[(i)*(N) + (j)]
 
