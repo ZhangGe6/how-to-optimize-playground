@@ -6,7 +6,7 @@
 
 // unroll 1x4
 // slightly performance boost
-void MMult_optim3_1(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc)
+void MMult_optim3_1(float *A, float *B, float *C, const int M, const int K, const int N, const int lda, const int ldb, const int ldc)
 {
   for (int i = 0; i < M; i += 4) {
     for (int j = 0; j < N; ++j) {
@@ -20,7 +20,7 @@ void MMult_optim3_1(float *A, float *B, float *C, int M, int K, int N, int lda, 
   }
 }
 
-void MMult_optim3_2(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc)
+void MMult_optim3_2(float *A, float *B, float *C, const int M, const int K, const int N, const int lda, const int ldb, const int ldc)
 {
   for (int i = 0; i < M; ++i) {
     for (int j = 0; j < N; j += 4) {
@@ -34,7 +34,7 @@ void MMult_optim3_2(float *A, float *B, float *C, int M, int K, int N, int lda, 
   }
 }
 
-void MMult_optim3_3(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc)
+void MMult_optim3_3(float *A, float *B, float *C, const int M, const int K, const int N, const int lda, const int ldb, const int ldc)
 {
   for (int i = 0; i < M; ++i) {
     for (int j = 0; j < N; ++j) {
@@ -50,7 +50,7 @@ void MMult_optim3_3(float *A, float *B, float *C, int M, int K, int N, int lda, 
 
 // unroll 4x4
 // further (and bigger) performace boost than unroll 1x4
-void MMult_optim3_4(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc)
+void MMult_optim3_4(float *A, float *B, float *C, const int M, const int K, const int N, const int lda, const int ldb, const int ldc)
 {
   for (int i = 0; i < M; i += 4) {
     for (int j = 0; j < N; j += 4) {
@@ -85,7 +85,7 @@ void MMult_optim3_4(float *A, float *B, float *C, int M, int K, int N, int lda, 
 
 // #pragma unroll
 // the fastest one in MMult_optim3_*
-void MMult_optim3_5(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc)
+void MMult_optim3_5(float *A, float *B, float *C, const int M, const int K, const int N, const int lda, const int ldb, const int ldc)
 {
   #pragma unroll
   for (int i = 0; i < M; ++i) {

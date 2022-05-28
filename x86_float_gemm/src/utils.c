@@ -6,8 +6,8 @@ void random_matrix(float *mat, int M, int N, int ldm){
     float a = 10000.0;
     for (int i = 0; i < M; ++i){
         for (int j = 0; j < N; ++j)
-            // mat(i, j) = (float)rand()/(float)(RAND_MAX/a);
-            mat(i, j) = (float) (i + 1);
+            mat(i, j) = (float)rand()/(float)(RAND_MAX/a);
+            // mat(i, j) = (float) (i + 1);
     }
     // print_matrix(M, N, mat, N);
 }

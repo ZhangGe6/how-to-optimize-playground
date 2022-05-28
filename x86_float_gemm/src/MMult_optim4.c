@@ -6,44 +6,16 @@
 
 // use register for the 1x4 unrolling
 // performance boost !
-// void MMult_optim4_1(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc)
-// {
-//   register float reg_c_i_j, reg_c_i1_j, reg_c_i2_j, reg_c_i3_j;
-
-//   for (int i = 0; i < M; i += 4) {
-//     for (int j = 0; j < N; ++j) {
-//       reg_c_i_j = (float) 0;
-//       reg_c_i1_j = (float) 0;
-//       reg_c_i2_j = (float) 0;
-//       reg_c_i3_j = (float) 0;
-      
-//       for (int p = 0; p < K; ++p) {
-//         reg_c_i_j += A(i, p) * B(p, j);
-//         reg_c_i1_j += A(i + 1, p) * B(p, j);
-//         reg_c_i2_j += A(i + 2, p) * B(p, j);
-//         reg_c_i3_j += A(i + 3, p) * B(p, j);
-//       }
-//       // note: `+=`, rather than `=` here, matters when we use cache blocking 
-//       // and C should be initilized to 0 at the very first.
-//       C(i, j) += reg_c_i_j;
-//       C(i + 1, j) += reg_c_i1_j;
-//       C(i + 2, j) += reg_c_i2_j;
-//       C(i + 3, j) += reg_c_i3_j;
-//     }
-//   }
-// }
-
-void MMult_optim4_1(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc)
+void MMult_optim4_1(float *A, float *B, float *C, const int M, const int K, const int N, const int lda, const int ldb, const int ldc)
 {
-  // register double reg_c_i_j, reg_c_i1_j, reg_c_i2_j, reg_c_i3_j;
-  double reg_c_i_j, reg_c_i1_j, reg_c_i2_j, reg_c_i3_j;
+  register float reg_c_i_j, reg_c_i1_j, reg_c_i2_j, reg_c_i3_j;
 
   for (int i = 0; i < M; i += 4) {
     for (int j = 0; j < N; ++j) {
-      reg_c_i_j = (double) 0;
-      reg_c_i1_j = (double) 0;
-      reg_c_i2_j = (double) 0;
-      reg_c_i3_j = (double) 0;
+      reg_c_i_j = (float) 0;
+      reg_c_i1_j = (float) 0;
+      reg_c_i2_j = (float) 0;
+      reg_c_i3_j = (float) 0;
       
       for (int p = 0; p < K; ++p) {
         reg_c_i_j += A(i, p) * B(p, j);
@@ -51,12 +23,7 @@ void MMult_optim4_1(float *A, float *B, float *C, int M, int K, int N, int lda, 
         reg_c_i2_j += A(i + 2, p) * B(p, j);
         reg_c_i3_j += A(i + 3, p) * B(p, j);
       }
-      // note: `+=`, rather than `=` here, matters when we use cache blocking 
       // and C should be initilized to 0 at the very first.
-      // C(i, j) += (float) reg_c_i_j;
-      // C(i + 1, j) += (float) reg_c_i1_j;
-      // C(i + 2, j) += (float) reg_c_i2_j;
-      // C(i + 3, j) += (float) reg_c_i3_j;
       C(i, j) += reg_c_i_j;
       C(i + 1, j) += reg_c_i1_j;
       C(i + 2, j) += reg_c_i2_j;
@@ -65,9 +32,8 @@ void MMult_optim4_1(float *A, float *B, float *C, int M, int K, int N, int lda, 
   }
 }
 
-
 // use register for the 4x4 unrolling
-void MMult_optim4_2(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc)
+void MMult_optim4_2(float *A, float *B, float *C, const int M, const int K, const int N, const int lda, const int ldb, const int ldc)
 {
   register float  c_00_reg, c_01_reg, c_02_reg, c_03_reg,  
                   c_10_reg, c_11_reg, c_12_reg, c_13_reg,  
@@ -117,7 +83,7 @@ void MMult_optim4_2(float *A, float *B, float *C, int M, int K, int N, int lda, 
 
 // use register for the 4x4 unrolling + pragma unroll
 // no difference with raw `register for the 4x4 unrolling`, aka, MMult_optim4_2
-void MMult_optim4_3(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc)
+void MMult_optim4_3(float *A, float *B, float *C, const int M, const int K, const int N, const int lda, const int ldb, const int ldc)
 {
   register float  c_00_reg, c_01_reg, c_02_reg, c_03_reg,  
                   c_10_reg, c_11_reg, c_12_reg, c_13_reg,  
@@ -169,7 +135,7 @@ void MMult_optim4_3(float *A, float *B, float *C, int M, int K, int N, int lda, 
 
 // use register for the 4x4 unrolling + use registers to save other values
 // nearly no performance boost
-void MMult_optim4_4(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc)
+void MMult_optim4_4(float *A, float *B, float *C, const int M, const int K, const int N, const int lda, const int ldb, const int ldc)
 {
   register float  c_00_reg, c_01_reg, c_02_reg, c_03_reg,  
                   c_10_reg, c_11_reg, c_12_reg, c_13_reg,  

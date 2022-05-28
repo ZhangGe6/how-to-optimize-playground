@@ -4,7 +4,7 @@
 // use [vector] registers (SIMD)
 
 // based on MMult_optim5_1. Firstly, rearrange the inner computation
-void MMult_optim6_1(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc)
+void MMult_optim6_1(float *A, float *B, float *C, const int M, const int K, const int N, const int lda, const int ldb, const int ldc)
 {
   register float  c_00_reg, c_01_reg, c_02_reg, c_03_reg,  
                   c_10_reg, c_11_reg, c_12_reg, c_13_reg,  
@@ -46,26 +46,31 @@ void MMult_optim6_1(float *A, float *B, float *C, int M, int K, int N, int lda, 
         b_p2_reg = *b_p_j2;
         b_p3_reg = *b_p_j3;
 
+        // 1st row
         c_00_reg += a_0p_reg * b_p0_reg;
         c_01_reg += a_0p_reg * b_p1_reg;
         c_02_reg += a_0p_reg * b_p2_reg;
         c_03_reg += a_0p_reg * b_p3_reg;
 
+        // 2nd row
         c_10_reg += a_1p_reg * b_p0_reg;
         c_11_reg += a_1p_reg * b_p1_reg;
         c_12_reg += a_1p_reg * b_p2_reg;
         c_13_reg += a_1p_reg * b_p3_reg;
 
+        // 3rd row
         c_20_reg += a_2p_reg * b_p0_reg;
         c_21_reg += a_2p_reg * b_p1_reg;
         c_22_reg += a_2p_reg * b_p2_reg;
         c_23_reg += a_2p_reg * b_p3_reg;
 
+        // 4th row
         c_30_reg += a_3p_reg * b_p0_reg;
         c_31_reg += a_3p_reg * b_p1_reg;
         c_32_reg += a_3p_reg * b_p2_reg;
         c_33_reg += a_3p_reg * b_p3_reg;
 
+        // update pointers
         a_i0_p += 1;
         a_i1_p += 1;
         a_i2_p += 1;
@@ -86,7 +91,7 @@ void MMult_optim6_1(float *A, float *B, float *C, int M, int K, int N, int lda, 
 }
 
 // Then use the vector registers to combine the computations
-void MMult_optim6_2(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc)
+void MMult_optim6_2(float *A, float *B, float *C, const int M, const int K, const int N, const int lda, const int ldb, const int ldc)
 {
 //   register float  c_00_reg, c_01_reg, c_02_reg, c_03_reg,  
 //                   c_10_reg, c_11_reg, c_12_reg, c_13_reg,  
