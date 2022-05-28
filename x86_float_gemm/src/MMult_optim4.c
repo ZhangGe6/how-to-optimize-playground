@@ -7,25 +7,27 @@
 // performance boost !
 // void MMult_optim4_1(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc)
 // {
-//   register float reg_c_i_j, reg_c_i_j1, reg_c_i_j2, reg_c_i_j3;
+//   register float reg_c_i_j, reg_c_i1_j, reg_c_i2_j, reg_c_i3_j;
 
-//   for (int i = 0; i < M; ++i) {
-//     for (int j = 0; j < N; j += 4) {
+//   for (int i = 0; i < M; i += 4) {
+//     for (int j = 0; j < N; ++j) {
 //       reg_c_i_j = (float) 0;
-//       reg_c_i_j1 = (float) 0;
-//       reg_c_i_j2 = (float) 0;
-//       reg_c_i_j3 = (float) 0;
+//       reg_c_i1_j = (float) 0;
+//       reg_c_i2_j = (float) 0;
+//       reg_c_i3_j = (float) 0;
       
 //       for (int p = 0; p < K; ++p) {
 //         reg_c_i_j += A(i, p) * B(p, j);
-//         reg_c_i_j1 += A(i, p) * B(p, j + 1);
-//         reg_c_i_j2 += A(i, p) * B(p, j + 2);
-//         reg_c_i_j3 += A(i, p) * B(p, j + 3);
+//         reg_c_i1_j += A(i + 1, p) * B(p, j);
+//         reg_c_i2_j += A(i + 2, p) * B(p, j);
+//         reg_c_i3_j += A(i + 3, p) * B(p, j);
 //       }
-//       C(i, j) = reg_c_i_j;
-//       C(i, j + 1) = reg_c_i_j1;
-//       C(i, j + 2) = reg_c_i_j2;
-//       C(i, j + 3) = reg_c_i_j3;
+//       // note: `+=`, rather than `=` here, matters when we use cache blocking 
+//       // and C should be initilized to 0 at the very first.
+//       C(i, j) += reg_c_i_j;
+//       C(i + 1, j) += reg_c_i1_j;
+//       C(i + 2, j) += reg_c_i2_j;
+//       C(i + 3, j) += reg_c_i3_j;
 //     }
 //   }
 // }
@@ -43,16 +45,27 @@ void MMult_optim4_1(float *A, float *B, float *C, int M, int K, int N, int lda, 
       
       for (int p = 0; p < K; ++p) {
         reg_c_i_j += A(i, p) * B(p, j);
-        reg_c_i1_j += A(i + 1, p) * B(p, j);
-        reg_c_i2_j += A(i + 2, p) * B(p, j);
-        reg_c_i3_j += A(i + 3, p) * B(p, j);
+        // reg_c_i1_j += A(i + 1, p) * B(p, j);
+        // reg_c_i2_j += A(i + 2, p) * B(p, j);
+        // reg_c_i3_j += A(i + 3, p) * B(p, j);
+        // C(i, j) += A(i, p) * B(p, j); 
+        C(i + 1, j) += A(i + 1, p) * B(p, j); 
+        C(i + 2, j) += A(i + 2, p) * B(p, j); 
+        C(i + 3, j) += A(i + 3, p) * B(p, j); 
       }
-      C(i, j) = reg_c_i_j;
-      C(i + 1, j) = reg_c_i1_j;
-      C(i + 2, j) = reg_c_i2_j;
-      C(i + 3, j) = reg_c_i3_j;
+      // note: `+=`, rather than `=` here, matters when we use cache blocking 
+      // and C should be initilized to 0 at the very first.
+      C(i, j) += reg_c_i_j;
+      // C(i + 1, j) += reg_c_i1_j;
+      // C(i + 2, j) += reg_c_i2_j;
+      // C(i + 3, j) += reg_c_i3_j;
     }
   }
+  // printf("lda %d, ldb %d, ldc %d\n", lda, ldb, ldc);
+  // print_matrix(A, M, K, lda);
+  // print_matrix(B, K, N, ldb);
+  // print_matrix(C, M, N, ldc);
+
 }
 
 // use register for the 4x4 unrolling
@@ -96,10 +109,10 @@ void MMult_optim4_2(float *A, float *B, float *C, int M, int K, int N, int lda, 
         c_23_reg += A(i + 2, p) * B(p, j + 3); 
         c_33_reg += A(i + 3, p) * B(p, j + 3); 
       }
-      C(i, j) = c_00_reg;   C(i, j+1) = c_01_reg;   C(i, j+2) = c_02_reg;   C(i, j+3) = c_03_reg;
-      C(i+1, j) = c_10_reg;   C(i+1, j+1) = c_11_reg;   C(i+1, j+2) = c_12_reg;   C(i+1, j+3) = c_13_reg;
-      C(i+2, j) = c_20_reg;   C(i+2, j+1) = c_21_reg;   C(i+2, j+2) = c_22_reg;   C(i+2, j+3) = c_23_reg;
-      C(i+3, j) = c_30_reg;   C(i+3, j+1) = c_31_reg;   C(i+3, j+2) = c_32_reg;   C(i+3, j+3) = c_33_reg;
+      C(i, j) += c_00_reg;   C(i, j+1) += c_01_reg;   C(i, j+2) += c_02_reg;   C(i, j+3) += c_03_reg;
+      C(i+1, j) += c_10_reg;   C(i+1, j+1) += c_11_reg;   C(i+1, j+2) += c_12_reg;   C(i+1, j+3) += c_13_reg;
+      C(i+2, j) += c_20_reg;   C(i+2, j+1) += c_21_reg;   C(i+2, j+2) += c_22_reg;   C(i+2, j+3) += c_23_reg;
+      C(i+3, j) += c_30_reg;   C(i+3, j+1) += c_31_reg;   C(i+3, j+2) += c_32_reg;   C(i+3, j+3) += c_33_reg;
     }
   }
 }
@@ -147,10 +160,10 @@ void MMult_optim4_3(float *A, float *B, float *C, int M, int K, int N, int lda, 
         c_23_reg += A(i + 2, p) * B(p, j + 3); 
         c_33_reg += A(i + 3, p) * B(p, j + 3); 
       }
-      C(i, j) = c_00_reg;   C(i, j+1) = c_01_reg;   C(i, j+2) = c_02_reg;   C(i, j+3) = c_03_reg;
-      C(i+1, j) = c_10_reg;   C(i+1, j+1) = c_11_reg;   C(i+1, j+2) = c_12_reg;   C(i+1, j+3) = c_13_reg;
-      C(i+2, j) = c_20_reg;   C(i+2, j+1) = c_21_reg;   C(i+2, j+2) = c_22_reg;   C(i+2, j+3) = c_23_reg;
-      C(i+3, j) = c_30_reg;   C(i+3, j+1) = c_31_reg;   C(i+3, j+2) = c_32_reg;   C(i+3, j+3) = c_33_reg;
+      C(i, j) += c_00_reg;   C(i, j+1) += c_01_reg;   C(i, j+2) += c_02_reg;   C(i, j+3) += c_03_reg;
+      C(i+1, j) += c_10_reg;   C(i+1, j+1) += c_11_reg;   C(i+1, j+2) += c_12_reg;   C(i+1, j+3) += c_13_reg;
+      C(i+2, j) += c_20_reg;   C(i+2, j+1) += c_21_reg;   C(i+2, j+2) += c_22_reg;   C(i+2, j+3) += c_23_reg;
+      C(i+3, j) += c_30_reg;   C(i+3, j+1) += c_31_reg;   C(i+3, j+2) += c_32_reg;   C(i+3, j+3) += c_33_reg;
     }
   }
 }
@@ -212,10 +225,10 @@ void MMult_optim4_4(float *A, float *B, float *C, int M, int K, int N, int lda, 
         c_23_reg += a_2p_reg * b_p3_reg; 
         c_33_reg += a_3p_reg * b_p3_reg; 
       }
-      C(i, j) = c_00_reg;   C(i, j+1) = c_01_reg;   C(i, j+2) = c_02_reg;   C(i, j+3) = c_03_reg;
-      C(i+1, j) = c_10_reg;   C(i+1, j+1) = c_11_reg;   C(i+1, j+2) = c_12_reg;   C(i+1, j+3) = c_13_reg;
-      C(i+2, j) = c_20_reg;   C(i+2, j+1) = c_21_reg;   C(i+2, j+2) = c_22_reg;   C(i+2, j+3) = c_23_reg;
-      C(i+3, j) = c_30_reg;   C(i+3, j+1) = c_31_reg;   C(i+3, j+2) = c_32_reg;   C(i+3, j+3) = c_33_reg;
+      C(i, j) += c_00_reg;   C(i, j+1) += c_01_reg;   C(i, j+2) += c_02_reg;   C(i, j+3) += c_03_reg;
+      C(i+1, j) += c_10_reg;   C(i+1, j+1) += c_11_reg;   C(i+1, j+2) += c_12_reg;   C(i+1, j+3) += c_13_reg;
+      C(i+2, j) += c_20_reg;   C(i+2, j+1) += c_21_reg;   C(i+2, j+2) += c_22_reg;   C(i+2, j+3) += c_23_reg;
+      C(i+3, j) += c_30_reg;   C(i+3, j+1) += c_31_reg;   C(i+3, j+2) += c_32_reg;   C(i+3, j+3) += c_33_reg;
     }
   }
 }

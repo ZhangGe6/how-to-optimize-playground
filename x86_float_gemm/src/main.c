@@ -12,8 +12,8 @@ int main() {
         exit(1);             
     }
 
-    // for (int msize = 40; msize <= 800; msize += 40){
-    for (int msize = 8; msize <= 8; msize += 4){    
+    for (int msize = 40; msize <= 800; msize += 40){
+    // for (int msize = 8; msize <= 8; msize += 4){    
         float *A, *B, *C_base, *C_optim;
         int M = msize, K = msize, N = msize;
         int lda = K, ldb = N, ldc = N;
@@ -27,17 +27,17 @@ int main() {
         B = (float*) malloc(K * N * sizeof(float));
         C_base = (float*) malloc(M * N * sizeof(float));
         C_optim = (float*) malloc(M * N * sizeof(float));
-        random_matrix(A, M, K);
-        random_matrix(B, K, N);
-        zero_matrix(C_base, M, N);
-        zero_matrix(C_optim, M, N);
+        random_matrix(A, M, K, lda);
+        random_matrix(B, K, N, ldb);
+        zero_matrix(C_base, M, N, ldc);
+        zero_matrix(C_optim, M, N, ldc);
         
         MMult_base(A, B, C_base, M, K, N, lda, ldb, ldc);
 
         // printf("testing msize %d\N", msize);
-        int repeat_times = 1;   // TODO: when repeat_times is lager than 1, the max_diff is wierd. -> I know, 
+        int repeat_times = 1; 
         for (int repeat = 0; repeat < repeat_times; ++repeat) {
-            zero_matrix(C_optim, M, N);  // because we are doing an [inplace] adding operation on C_optim, so we need to initialize C_optim every iter
+            zero_matrix(C_optim, M, N, ldc);  // because we are doing an [inplace] adding operation on C_optim, so we need to initialize C_optim every iter
             float start = clock();
 
             // MMult_base(A, B, C_optim, M, K, N, lda, ldb, ldc);
@@ -68,14 +68,14 @@ int main() {
             float elapsed_seconds = (clock() - start) / CLOCKS_PER_SEC;
             time_best = MIN(time_best, elapsed_seconds);
         }
-        // print_matrix(A, M, K);
-        // print_matrix(B, K, N);
-        // print_matrix(C_base, M, N);
-        // print_matrix(C_optim, M, N);
+        // print_matrix(A, M, K, lda);
+        // print_matrix(B, K, N, ldb);
+        // print_matrix(C_base, M, N, ldc);
+        // print_matrix(C_optim, M, N, ldc);
 
         // printf("time best %f\n", time_best);
 
-        float max_diff = compare_matrix(C_base, C_optim, M, N);
+        float max_diff = compare_matrix(C_base, C_optim, M, N, ldc);
         // assert(max_diff == 0);
         printf( "%d %f %f \n", msize, gflops / time_best, max_diff);
         fprintf(fptr,"%d %f %f \n", msize, gflops / time_best, max_diff);

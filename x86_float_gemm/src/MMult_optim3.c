@@ -84,7 +84,7 @@ void MMult_optim3_4(float *A, float *B, float *C, int M, int K, int N, int lda, 
 }
 
 // #pragma unroll
-// the fastest on in MMult_optim3_*
+// the fastest one in MMult_optim3_*
 void MMult_optim3_5(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc)
 {
   #pragma unroll
