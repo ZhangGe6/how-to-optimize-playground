@@ -5,7 +5,7 @@
 int main() {
     FILE *fptr;
     // fptr = fopen("../res/MMult_base.txt","w");
-    fptr = fopen("../res/MMult_optim7_3.txt", "w");
+    fptr = fopen("../res/MMult_optim7_4.txt", "w");
     if(fptr == NULL)
     {
         printf("Error open file!");   
@@ -14,11 +14,11 @@ int main() {
 
     for (int msize = 40; msize <= 1200; msize += 40){
     // for (int msize = 32; msize <= 1024; msize += 32){
-    // for (int msize = 8; msize <= 8; msize += 4){   
+    // for (int msize = 4; msize <= 8; msize += 4){   
     // for (int msize = 360; msize <= 360; msize += 4){    
         float *A, *B, *C_base, *C_optim;
-        int M = msize, K = msize, N = msize;
-        int lda = K, ldb = N, ldc = N;
+        const int M = msize, K = msize, N = msize;
+        const int lda = K, ldb = N, ldc = N;
 
         /* each item of output require 2K floating point ops (multiply & add) and perform M*K times 
         See https://sahnimanas.github.io/post/anatomy-of-a-high-performance-convolution/ for more details*/
@@ -65,9 +65,8 @@ int main() {
 
             // MMult_optim7_1(A, B, C_optim, M, K, N, lda, ldb, ldc);
             // MMult_optim7_2(A, B, C_optim, M, K, N, lda, ldb, ldc);
-            MMult_optim7_3(A, B, C_optim, M, K, N, lda, ldb, ldc);
-
-
+            // MMult_optim7_3(A, B, C_optim, M, K, N, lda, ldb, ldc);
+            MMult_optim7_4(A, B, C_optim, M, K, N, lda, ldb, ldc);
 
 
 

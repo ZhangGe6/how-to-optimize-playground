@@ -34,6 +34,7 @@ void MMult_optim6_2(float *A, float *B, float *C, const int M, const int K, cons
 void MMult_optim7_1(float *A, float *B, float *C, const int M, const int K, const int N, const int lda, const int ldb, const int ldc);
 void MMult_optim7_2(float *A, float *B, float *C, const int M, const int K, const int N, const int lda, const int ldb, const int ldc);
 void MMult_optim7_3(float *A, float *B, float *C, const int M, const int K, const int N, const int lda, const int ldb, const int ldc);
+void MMult_optim7_4(float *A, float *B, float *C, const int M, const int K, const int N, const int lda, const int ldb, const int ldc);
 
 
 

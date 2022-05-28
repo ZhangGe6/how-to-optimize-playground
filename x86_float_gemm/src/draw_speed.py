@@ -16,7 +16,7 @@ methods = [
             'MMult_optim4_1', 'MMult_optim4_2', 'MMult_optim4_3', 'MMult_optim4_4',
             'MMult_optim5_1',
             'MMult_optim6_2',
-            'MMult_optim7_2', 'MMult_optim7_3'
+            'MMult_optim7_2', 'MMult_optim7_3', 'MMult_optim7_1'
         ]
 
 colors = dict(mcolors.BASE_COLORS, **mcolors.CSS4_COLORS)
