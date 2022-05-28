@@ -38,7 +38,7 @@ float compare_matrix(float *mat1, float *mat2, int m, int n){
     float diff, max_diff = 0;
     for (int i = 0; i < m; ++i){
         for (int j = 0; j < n; ++j){
-            diff = abs(mat1[OFFSET(i, j, n)] - mat2[OFFSET(i, j, n)]);
+            diff = fabs(mat1[OFFSET(i, j, n)] - mat2[OFFSET(i, j, n)]);
             max_diff = diff > max_diff ? diff : max_diff;
         }
     }

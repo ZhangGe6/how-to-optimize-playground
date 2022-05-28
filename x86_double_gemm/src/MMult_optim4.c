@@ -25,10 +25,36 @@ void MMult_optim4_1(int m, int k, int n, double *A, double *B, double *C, int ld
         reg_c_i_j_add_2 += A(i, p) * B(p, j + 2);
         reg_c_i_j_add_3 += A(i, p) * B(p, j + 3);
       }
-      C(i, j) = reg_c_i_j;
-      C(i, j + 1) = reg_c_i_j_add_1;
-      C(i, j + 2) = reg_c_i_j_add_2;
-      C(i, j + 3) = reg_c_i_j_add_3;
+      C(i, j) += reg_c_i_j;
+      C(i, j + 1) += reg_c_i_j_add_1;
+      C(i, j + 2) += reg_c_i_j_add_2;
+      C(i, j + 3) += reg_c_i_j_add_3;
+    }
+  }
+}
+
+void MMult_optim4_1_1(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
+{
+  register double reg_c_i_j, reg_c_i1_j, reg_c_i2_j, reg_c_i3_j;
+
+  for (int i = 0; i < m; i += 4){
+    for (int j = 0; j < n; j += 1){
+      // C(i, j) ~ C(i, j + 3) are frequently acceesd (in the loop), so we put it into register.
+      reg_c_i_j = (double) 0;
+      reg_c_i1_j = (double) 0;
+      reg_c_i2_j = (double) 0;
+      reg_c_i3_j = (double) 0;
+
+      for (int p = 0; p < k; ++p){
+        reg_c_i_j += A(i, p) * B(p, j);
+        reg_c_i1_j += A(i + 1, p) * B(p, j);
+        reg_c_i2_j += A(i + 2, p) * B(p, j);
+        reg_c_i3_j += A(i + 3, p) * B(p, j);
+      }
+      C(i, j) += reg_c_i_j;
+      C(i + 1, j) += reg_c_i1_j;
+      C(i + 2, j) += reg_c_i2_j;
+      C(i + 3, j) += reg_c_i3_j;
     }
   }
 }
@@ -114,10 +140,10 @@ void MMult_optim4_4(int m, int k, int n, double *A, double *B, double *C, int ld
         reg_c_i_j_add_2 += reg_a_i_p * reg_b_p_j_add_2;
         reg_c_i_j_add_3 += reg_a_i_p * reg_b_p_j_add_3;
       }
-      C(i, j) = reg_c_i_j;
-      C(i, j + 1) = reg_c_i_j_add_1;
-      C(i, j + 2) = reg_c_i_j_add_2;
-      C(i, j + 3) = reg_c_i_j_add_3;
+      C(i, j) += reg_c_i_j;
+      C(i, j + 1) += reg_c_i_j_add_1;
+      C(i, j + 2) += reg_c_i_j_add_2;
+      C(i, j + 3) += reg_c_i_j_add_3;
     }
   }
 }
@@ -144,10 +170,10 @@ void MMult_optim4_5(int m, int k, int n, double *A, double *B, double *C, int ld
         reg_c_i_j_add_2 += reg_a_i_p * B(p, j + 2);
         reg_c_i_j_add_3 += reg_a_i_p * B(p, j + 3);
       }
-      C(i, j) = reg_c_i_j;
-      C(i, j + 1) = reg_c_i_j_add_1;
-      C(i, j + 2) = reg_c_i_j_add_2;
-      C(i, j + 3) = reg_c_i_j_add_3;
+      C(i, j) += reg_c_i_j;
+      C(i, j + 1) += reg_c_i_j_add_1;
+      C(i, j + 2) += reg_c_i_j_add_2;
+      C(i, j + 3) += reg_c_i_j_add_3;
     }
   }
 }

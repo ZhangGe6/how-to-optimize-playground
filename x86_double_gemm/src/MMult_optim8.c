@@ -157,3 +157,17 @@ void MMult_optim8_8(int m, int k, int n, double *A, double *B, double *C, int ld
     }
   }
 }
+
+
+// a verification demo 
+void MMult_optim8_9(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
+{
+  for (int mBlockStart = 0; mBlockStart < m; mBlockStart += blockSize) {
+    for (int nBlockStart = 0; nBlockStart < n; nBlockStart += blockSize) {
+      for (int kBlockStart = 0; kBlockStart < k; kBlockStart += blockSize) {
+        // MMult_optim4_1(blockSize, blockSize, blockSize, &A(mBlockStart, kBlockStart), &B(kBlockStart, nBlockStart), &C(mBlockStart, nBlockStart), lda, ldb, ldc);
+        MMult_optim4_1_1(blockSize, blockSize, blockSize, &A(mBlockStart, kBlockStart), &B(kBlockStart, nBlockStart), &C(mBlockStart, nBlockStart), lda, ldb, ldc);
+      }
+    }
+  }
+}

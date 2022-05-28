@@ -45,7 +45,7 @@ double compare_matrix(int m, int n, double *mat, double *mat2, int ldm){
     double max_diff = 0, diff;
     for (int i = 0; i < m; ++i){
         for (int j = 0; j < n; ++j){
-            diff = abs(mat(i, j) - mat2(i, j));
+            diff = fabs(mat(i, j) - mat2(i, j));
             max_diff = diff > max_diff ? diff : max_diff;
         }
     }
