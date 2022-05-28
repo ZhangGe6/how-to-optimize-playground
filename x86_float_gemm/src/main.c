@@ -5,7 +5,7 @@
 int main() {
     FILE *fptr;
     // fptr = fopen("../res/MMult_base.txt","w");
-    fptr = fopen("../res/MMult_optim7_1.txt", "w");
+    fptr = fopen("../res/MMult_optim4_1.txt", "w");
     if(fptr == NULL)
     {
         printf("Error open file!");   
@@ -13,7 +13,8 @@ int main() {
     }
 
     for (int msize = 40; msize <= 800; msize += 40){
-    // for (int msize = 8; msize <= 8; msize += 4){    
+    // for (int msize = 8; msize <= 8; msize += 4){   
+    // for (int msize = 360; msize <= 360; msize += 4){    
         float *A, *B, *C_base, *C_optim;
         int M = msize, K = msize, N = msize;
         int lda = K, ldb = N, ldc = N;
@@ -38,6 +39,7 @@ int main() {
         int repeat_times = 1; 
         for (int repeat = 0; repeat < repeat_times; ++repeat) {
             zero_matrix(C_optim, M, N, ldc);  // because we are doing an [inplace] adding operation on C_optim, so we need to initialize C_optim every iter
+            // print_matrix(C_optim, M, N, ldc);
             float start = clock();
 
             // MMult_base(A, B, C_optim, M, K, N, lda, ldb, ldc);
@@ -58,9 +60,9 @@ int main() {
             // MMult_optim5_1(A, B, C_optim, M, K, N, lda, ldb, ldc);
 
             // MMult_optim6_1(A, B, C_optim, M, K, N, lda, ldb, ldc);
-            // MMult_optim6_2(A, B, C_optim, M, K, N, lda, ldb, ldc);
+            MMult_optim6_2(A, B, C_optim, M, K, N, lda, ldb, ldc);
 
-            MMult_optim7_1(A, B, C_optim, M, K, N, lda, ldb, ldc);
+            // MMult_optim7_1(A, B, C_optim, M, K, N, lda, ldb, ldc);
 
 
 
@@ -72,6 +74,8 @@ int main() {
         // print_matrix(B, K, N, ldb);
         // print_matrix(C_base, M, N, ldc);
         // print_matrix(C_optim, M, N, ldc);
+        // printf("max value in C_base %f\n", max_value(C_base, M, N, ldc));
+        // printf("max value in C_optim %f\n", max_value(C_optim, M, N, ldc));
 
         // printf("time best %f\n", time_best);
 

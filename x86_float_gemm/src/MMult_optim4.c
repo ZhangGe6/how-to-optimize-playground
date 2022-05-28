@@ -1,5 +1,6 @@
 #include "params.h"
 #include "MMult.h"
+#include "utils.h"
 
 // use register to save the most frequently used data
 
@@ -34,39 +35,36 @@
 
 void MMult_optim4_1(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc)
 {
-  register float reg_c_i_j, reg_c_i1_j, reg_c_i2_j, reg_c_i3_j;
+  // register double reg_c_i_j, reg_c_i1_j, reg_c_i2_j, reg_c_i3_j;
+  double reg_c_i_j, reg_c_i1_j, reg_c_i2_j, reg_c_i3_j;
 
   for (int i = 0; i < M; i += 4) {
     for (int j = 0; j < N; ++j) {
-      reg_c_i_j = (float) 0;
-      reg_c_i1_j = (float) 0;
-      reg_c_i2_j = (float) 0;
-      reg_c_i3_j = (float) 0;
+      reg_c_i_j = (double) 0;
+      reg_c_i1_j = (double) 0;
+      reg_c_i2_j = (double) 0;
+      reg_c_i3_j = (double) 0;
       
       for (int p = 0; p < K; ++p) {
         reg_c_i_j += A(i, p) * B(p, j);
-        // reg_c_i1_j += A(i + 1, p) * B(p, j);
-        // reg_c_i2_j += A(i + 2, p) * B(p, j);
-        // reg_c_i3_j += A(i + 3, p) * B(p, j);
-        // C(i, j) += A(i, p) * B(p, j); 
-        C(i + 1, j) += A(i + 1, p) * B(p, j); 
-        C(i + 2, j) += A(i + 2, p) * B(p, j); 
-        C(i + 3, j) += A(i + 3, p) * B(p, j); 
+        reg_c_i1_j += A(i + 1, p) * B(p, j);
+        reg_c_i2_j += A(i + 2, p) * B(p, j);
+        reg_c_i3_j += A(i + 3, p) * B(p, j);
       }
       // note: `+=`, rather than `=` here, matters when we use cache blocking 
       // and C should be initilized to 0 at the very first.
+      // C(i, j) += (float) reg_c_i_j;
+      // C(i + 1, j) += (float) reg_c_i1_j;
+      // C(i + 2, j) += (float) reg_c_i2_j;
+      // C(i + 3, j) += (float) reg_c_i3_j;
       C(i, j) += reg_c_i_j;
-      // C(i + 1, j) += reg_c_i1_j;
-      // C(i + 2, j) += reg_c_i2_j;
-      // C(i + 3, j) += reg_c_i3_j;
+      C(i + 1, j) += reg_c_i1_j;
+      C(i + 2, j) += reg_c_i2_j;
+      C(i + 3, j) += reg_c_i3_j;
     }
   }
-  // printf("lda %d, ldb %d, ldc %d\n", lda, ldb, ldc);
-  // print_matrix(A, M, K, lda);
-  // print_matrix(B, K, N, ldb);
-  // print_matrix(C, M, N, ldc);
-
 }
+
 
 // use register for the 4x4 unrolling
 void MMult_optim4_2(float *A, float *B, float *C, int M, int K, int N, int lda, int ldb, int ldc)

@@ -3,7 +3,7 @@
 
 // https://stackoverflow.com/a/13409133/10096987
 void random_matrix(float *mat, int M, int N, int ldm){
-    float a = 5.0;
+    float a = 10000.0;
     for (int i = 0; i < M; ++i){
         for (int j = 0; j < N; ++j)
             // mat(i, j) = (float)rand()/(float)(RAND_MAX/a);
@@ -50,13 +50,25 @@ float compare_matrix(float *mat, float *mat2, int M, int N, int ldm){
         for (int j = 0; j < N; ++j){
             diff = fabs(mat(i, j) - mat2(i, j));
             max_diff = diff > max_diff ? diff : max_diff;
-            // if (max_diff > 0){
-
-            // }
+            if (diff > 0){
+                printf("unequal at [%d, %d], values are %f and %f, diference is %f\n", i, j, mat(i, j), mat2(i, j), diff);
+                exit(1);
+            }
         }
     }
 
     return max_diff;
+}
+
+float max_value(float *mat, int M, int N, int ldm){
+    float max_value = -DBL_MAX;
+    for (int i = 0; i < M; ++i){
+        for (int j = 0; j < N; ++j){
+            if (mat(i, j) > max_value)  max_value = mat(i, j);
+        }
+    }
+
+    return max_value;
 }
 
 // float compare_matrix(float *mat, float *mat2, int M, int N, int ldm){

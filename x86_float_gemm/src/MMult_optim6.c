@@ -71,10 +71,10 @@ void MMult_optim6_1(float *A, float *B, float *C, int M, int K, int N, int lda, 
         a_i2_p += 1;
         a_i3_p += 1;
 
-        b_p_j0 += N;
-        b_p_j1 += N;
-        b_p_j2 += N;
-        b_p_j3 += N;
+        b_p_j0 += ldb;
+        b_p_j1 += ldb;
+        b_p_j2 += ldb;
+        b_p_j3 += ldb;
 
       }
       C(i, j) += c_00_reg;   C(i, j+1) += c_01_reg;   C(i, j+2) += c_02_reg;   C(i, j+3) += c_03_reg;
@@ -172,7 +172,7 @@ void MMult_optim6_2(float *A, float *B, float *C, int M, int K, int N, int lda, 
         a_i2_p += 1;
         a_i3_p += 1;
 
-        b_p_j0 += N;
+        b_p_j0 += ldb;
         // b_p_j1 += N;
         // b_p_j2 += N;
         // b_p_j3 += N;
