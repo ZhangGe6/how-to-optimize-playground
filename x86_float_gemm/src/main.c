@@ -5,7 +5,7 @@
 int main() {
     FILE *fptr;
     // fptr = fopen("../res/MMult_base.txt","w");
-    fptr = fopen("../res/MMult_optim8_1.txt", "w");
+    fptr = fopen("../res/MMult_optim8_2.txt", "w");
     if(fptr == NULL)
     {
         printf("Error open file!");   
@@ -61,15 +61,17 @@ int main() {
 
             // MMult_optim6_1(A, B, C_optim, M, K, N, lda, ldb, ldc);
             // MMult_optim6_2(A, B, C_optim, M, K, N, lda, ldb, ldc);
+            // MMult_optim6_3(A, B, C_optim, M, K, N, lda, ldb, ldc);
 
             // MMult_optim7_1(A, B, C_optim, M, K, N, lda, ldb, ldc);
             // MMult_optim7_2(A, B, C_optim, M, K, N, lda, ldb, ldc);
             // MMult_optim7_3(A, B, C_optim, M, K, N, lda, ldb, ldc);
             // MMult_optim7_4(A, B, C_optim, M, K, N, lda, ldb, ldc);
 
-            MMult_optim8_1(A, B, C_optim, M, K, N, lda, ldb, ldc);
+            // MMult_optim8_1(A, B, C_optim, M, K, N, lda, ldb, ldc);  
+            MMult_optim8_2(A, B, C_optim, M, K, N, lda, ldb, ldc);
 
-
+            // MMult_optim9_1(A, B, C_optim, M, K, N, lda, ldb, ldc);
 
             // https://stackoverflow.com/a/459704/10096987
             float elapsed_seconds = (clock() - start) / CLOCKS_PER_SEC;

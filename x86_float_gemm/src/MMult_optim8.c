@@ -32,7 +32,7 @@ void MMult_optim8_1(float *A, float *B, float *C, const int M, const int K, cons
 // use more flexible blockSize
 void MMult_optim8_2(float *A, float *B, float *C, const int M, const int K, const int N, const int lda, const int ldb, const int ldc)
 {
-    int mBlockSize = 80, nBlockSize = 80, kBlockSize = 100;
+    int mBlockSize = 256, nBlockSize = 256, kBlockSize = 64;
     for (int mBlockStart = 0; mBlockStart < M; mBlockStart += mBlockSize) {
         int mSize = MIN(mBlockSize, M - mBlockStart);     // in case the left m dimension size smaller than mBlockSize
         for (int nBlockStart = 0; nBlockStart < N; nBlockStart += nBlockSize) {
@@ -40,7 +40,8 @@ void MMult_optim8_2(float *A, float *B, float *C, const int M, const int K, cons
             for (int kBlockStart = 0; kBlockStart < K; kBlockStart += kBlockSize) {
                 int kSize = MIN(kBlockSize, K - kBlockStart);
                 // MMult_optim6_2(float *A, float *B, float *C, const int M, const int K, const int N, const int lda, const int ldb, const int ldc)
-                MMult_optim6_2(&A(mBlockStart, kBlockStart), &B(kBlockStart, nBlockStart), &C(mBlockStart, nBlockStart), mSize, kSize, nSize, lda, ldb, ldc);
+                // MMult_optim6_2(&A(mBlockStart, kBlockStart), &B(kBlockStart, nBlockStart), &C(mBlockStart, nBlockStart), mSize, kSize, nSize, lda, ldb, ldc);
+                MMult_optim7_3(&A(mBlockStart, kBlockStart), &B(kBlockStart, nBlockStart), &C(mBlockStart, nBlockStart), mSize, kSize, nSize, lda, ldb, ldc);
             }
         }
     }

@@ -4,7 +4,7 @@ import matplotlib.colors as mcolors
 plt.figure(figsize=(12.8, 9.6))
 
 # change it according to our machine
-peak_GFlops_ps = 50 # a tempory one here
+peak_GFlops_ps = 60 # a tempory one here
 
 plt.ylim((0, peak_GFlops_ps))
 plt.xlabel('matirx size')
@@ -17,7 +17,7 @@ methods = [
             'MMult_optim5_1',
             'MMult_optim6_2',
             'MMult_optim7_1', 'MMult_optim7_2', 'MMult_optim7_3',
-            'MMult_optim8_1',
+            'MMult_optim8_1', 'MMult_optim8_2'
         ]
 
 colors = dict(mcolors.BASE_COLORS, **mcolors.CSS4_COLORS)

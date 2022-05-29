@@ -1,7 +1,7 @@
 #include "params.h"
 #include "MMult.h"
 
-// use [vector] registers (SIMD)
+// use [vector] registers (SIMD) __m128
 
 // based on MMult_optim5_1. Firstly, rearrange the inner computation
 void MMult_optim6_1(float *A, float *B, float *C, const int M, const int K, const int N, const int lda, const int ldb, const int ldc)
@@ -189,6 +189,76 @@ void MMult_optim6_2(float *A, float *B, float *C, const int M, const int K, cons
         // b_p_j1 += N;
         // b_p_j2 += N;
         // b_p_j3 += N;
+
+      }
+      C(i, j) = c_row_0.value[0];   C(i, j+1) = c_row_0.value[1];   C(i, j+2) = c_row_0.value[2];   C(i, j+3) = c_row_0.value[3];
+      C(i+1, j) = c_row_1.value[0];   C(i+1, j+1) = c_row_1.value[1];   C(i+1, j+2) = c_row_1.value[2];   C(i+1, j+3) = c_row_1.value[3];
+      C(i+2, j) = c_row_2.value[0];   C(i+2, j+1) = c_row_2.value[1];   C(i+2, j+2) = c_row_2.value[2];   C(i+2, j+3) = c_row_2.value[3];
+      C(i+3, j) = c_row_3.value[0];   C(i+3, j+1) = c_row_3.value[1];   C(i+3, j+2) = c_row_3.value[2];   C(i+3, j+3) = c_row_3.value[3];
+    }
+  }
+}
+
+// use Fuse Multiply and Add (FMA) instruction
+// -mfma flag is needed for compiling
+// 
+void MMult_optim6_3(float *A, float *B, float *C, const int M, const int K, const int N, const int lda, const int ldb, const int ldc)
+{
+  v4f_regv c_row_0, c_row_1, c_row_2, c_row_3;
+  v4f_regv a_0p_v, a_1p_v, a_2p_v, a_3p_v;
+  v4f_regv b_p;
+
+  float *a_i0_p, *a_i1_p, *a_i2_p, *a_i3_p;
+  // float *b_p_j0, *b_p_j1, *b_p_j2, *b_p_j3;
+  float *b_p_j0;
+
+  // c_mn_reg means c_(i+m)_(j+n)_reg
+
+  for (int i = 0; i < M; i += 4) {
+    for (int j = 0; j < N; j += 4) {
+      // use last C value to initilize registers, to fight against floating-point rounding error problem when cache blocking is used later
+      // c_row_0.reg = _mm_set_ps1(C(i, j));
+      // c_row_1.reg = _mm_set_ps1(C(i + 1, j));
+      // c_row_2.reg = _mm_set_ps1(C(i + 2, j));
+      // c_row_3.reg = _mm_set_ps1(C(i + 3, j));
+      c_row_0.reg = _mm_load_ps(&C(i, j));
+      c_row_1.reg = _mm_load_ps(&C(i + 1, j));
+      c_row_2.reg = _mm_load_ps(&C(i + 2, j));
+      c_row_3.reg = _mm_load_ps(&C(i + 3, j));
+
+      b_p_j0 = &(B(0, j));
+
+      a_i0_p = &(A(i, 0));
+      a_i1_p = &(A(i + 1, 0));
+      a_i2_p = &(A(i + 2, 0));
+      a_i3_p = &(A(i + 3, 0));
+    
+      for (int p = 0; p < K; ++p) {
+        a_0p_v.reg = _mm_set_ps1(*a_i0_p);
+        a_1p_v.reg = _mm_set_ps1(*a_i1_p);
+        a_2p_v.reg = _mm_set_ps1(*a_i2_p);
+        a_3p_v.reg = _mm_set_ps1(*a_i3_p);
+
+        b_p.reg = _mm_load_ps((float *)b_p_j0);
+
+        // c_row_0.reg += a_0p_v.reg * b_p.reg;
+        c_row_0.reg = _mm_fmadd_ps(a_0p_v.reg, b_p.reg, c_row_0.reg);
+
+        // c_row_1.reg += a_1p_v.reg * b_p.reg;
+        c_row_1.reg = _mm_fmadd_ps(a_1p_v.reg, b_p.reg, c_row_1.reg);
+
+        // c_row_2.reg += a_2p_v.reg * b_p.reg;
+        c_row_2.reg = _mm_fmadd_ps(a_2p_v.reg, b_p.reg, c_row_2.reg);
+
+        // c_row_3.reg += a_3p_v.reg * b_p.reg;
+        c_row_3.reg = _mm_fmadd_ps(a_3p_v.reg, b_p.reg, c_row_3.reg);
+
+        a_i0_p += 1;
+        a_i1_p += 1;
+        a_i2_p += 1;
+        a_i3_p += 1;
+
+        b_p_j0 += ldb;
 
       }
       C(i, j) = c_row_0.value[0];   C(i, j+1) = c_row_0.value[1];   C(i, j+2) = c_row_0.value[2];   C(i, j+3) = c_row_0.value[3];

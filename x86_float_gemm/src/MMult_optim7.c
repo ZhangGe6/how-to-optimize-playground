@@ -3,6 +3,9 @@
 
 // use wider [vector] registers (SIMD) __m256
 // -mavx or -mavx2 is needed for compiling
+// this blog: https://blog.triplez.cn/posts/avx-avx2-learning-notes/ , or its Chinese version:
+// https://blog.csdn.net/just_sort/article/details/94393506 really helps 
+
 
 // based on MMult_optim6_1. compute 4x8 at a time
 // Firstly, rearrange the inner computation
@@ -135,7 +138,7 @@ void MMult_optim7_1(float *A, float *B, float *C, const int M, const int K, cons
 }
 
 // Then use the vector registers to combine the computations
-// larger boost (14->30 GFLOPs)
+// larger boost 
 void MMult_optim7_2(float *A, float *B, float *C, const int M, const int K, const int N, const int lda, const int ldb, const int ldc)
 {
   // register float  c_00_reg, c_01_reg, c_02_reg, c_03_reg, c_04_reg, c_05_reg, c_06_reg, c_07_reg,  
@@ -158,6 +161,7 @@ void MMult_optim7_2(float *A, float *B, float *C, const int M, const int K, cons
     for (int j = 0; j < N; j += 8) {
 
       // This leads to segmentation fault. May caused by memory misalignment
+      // TODO: will it be faster if data can be guaranteed?
       // c_row_0.reg = _mm256_load_ps(&C(i, j));
       // c_row_1.reg = _mm256_load_ps(&C(i + 1, j));
       // c_row_2.reg = _mm256_load_ps(&C(i + 2, j));
@@ -167,7 +171,6 @@ void MMult_optim7_2(float *A, float *B, float *C, const int M, const int K, cons
       c_row_1.reg = _mm256_loadu_ps(&C(i + 1, j));
       c_row_2.reg = _mm256_loadu_ps(&C(i + 2, j));
       c_row_3.reg = _mm256_loadu_ps(&C(i + 3, j));
-      // printf("run to here\n");
       
       b_p_j0 = &(B(0, j));
       // b_p_j1 = &(B(0, j + 1));
@@ -201,6 +204,7 @@ void MMult_optim7_2(float *A, float *B, float *C, const int M, const int K, cons
         // b_p5_reg = *b_p_j5;
         // b_p6_reg = *b_p_j6;
         // b_p7_reg = *b_p_j7;
+        // b_p.reg = _mm256_load_ps((float *)b_p_j0);
         b_p.reg = _mm256_loadu_ps((float *)b_p_j0);
 
         // 1st row
@@ -279,7 +283,6 @@ void MMult_optim7_2(float *A, float *B, float *C, const int M, const int K, cons
 
 // use Fuse Multiply and Add (FMA) instruction
 // -mfma flag is needed for compiling
-// larger boost (30->40 GFLOPs)
 void MMult_optim7_3(float *A, float *B, float *C, const int M, const int K, const int N, const int lda, const int ldb, const int ldc)
 {
   v8f_regv c_row_0, c_row_1, c_row_2, c_row_3;
