@@ -4,19 +4,20 @@ import matplotlib.colors as mcolors
 plt.figure(figsize=(12.8, 9.6))
 
 # change it according to our machine
-peak_GFlops_ps = 20 # a tempory one here
+peak_GFlops_ps = 50 # a tempory one here
 
 plt.ylim((0, peak_GFlops_ps))
 plt.xlabel('matirx size')
 plt.ylabel('GFlops')
 
 methods = [
-            # 'MMult_base', 'MMult_optim1_1', 'MMult_optim2_1',
-            # 'MMult_optim3_1', 'MMult_optim3_2', 'MMult_optim3_3', 'MMult_optim3_4', #'MMult_optim3_4'
-            'MMult_optim4_1', 'MMult_optim4_2', 'MMult_optim4_3', 'MMult_optim4_4', 'MMult_optim4_2_1'
-            # 'MMult_optim5_1',
-            # 'MMult_optim6_2',
-            # 'MMult_optim7_2', 'MMult_optim7_3', 'MMult_optim7_4'
+            'MMult_base', 'MMult_optim1_1', 'MMult_optim2_1',
+            'MMult_optim3_1', 'MMult_optim3_2', 'MMult_optim3_3', 'MMult_optim3_4', #'MMult_optim3_4'
+            'MMult_optim4_1', 'MMult_optim4_2', 'MMult_optim4_3', 'MMult_optim4_4', 'MMult_optim4_2_1',
+            'MMult_optim5_1',
+            'MMult_optim6_2',
+            'MMult_optim7_1', 'MMult_optim7_2', 'MMult_optim7_3',
+            'MMult_optim8_1',
         ]
 
 colors = dict(mcolors.BASE_COLORS, **mcolors.CSS4_COLORS)

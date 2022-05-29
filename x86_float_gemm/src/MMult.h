@@ -35,6 +35,7 @@ void MMult_optim6_2(float *A, float *B, float *C, const int M, const int K, cons
 // use wider [vector] registers (SIMD) __m256
 void MMult_optim7_1(float *A, float *B, float *C, const int M, const int K, const int N, const int lda, const int ldb, const int ldc);
 void MMult_optim7_2(float *A, float *B, float *C, const int M, const int K, const int N, const int lda, const int ldb, const int ldc);
+void MMult_optim7_3(float *A, float *B, float *C, const int M, const int K, const int N, const int lda, const int ldb, const int ldc);
 
 // cache blocking
 void MMult_optim8_1(float *A, float *B, float *C, const int M, const int K, const int N, const int lda, const int ldb, const int ldc);

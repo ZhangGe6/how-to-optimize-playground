@@ -1,7 +1,9 @@
 
 
 CC         := gcc
-CFLAGS     := -O2 -Wall -msse3 -mavx   # -mavx is needed to use __m256
+# -mavx is needed to use __m256
+# -mfma is needede to use fma
+CFLAGS     := -O2 -Wall -msse3 -mavx -mfma
 LDFLAGS    := -lm
 
 BUILD=../build

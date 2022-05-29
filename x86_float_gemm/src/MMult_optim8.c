@@ -22,7 +22,8 @@ void MMult_optim8_1(float *A, float *B, float *C, const int M, const int K, cons
                 // MMult_optim4_2(&A(mBlockStart, kBlockStart), &B(kBlockStart, nBlockStart), &C(mBlockStart, nBlockStart), blockSize, blockSize, blockSize, lda, ldb, ldc);
                 // MMult_optim4_2_1(&A(mBlockStart, kBlockStart), &B(kBlockStart, nBlockStart), &C(mBlockStart, nBlockStart), blockSize, blockSize, blockSize, lda, ldb, ldc);
 
-                MMult_optim6_2(&A(mBlockStart, kBlockStart), &B(kBlockStart, nBlockStart), &C(mBlockStart, nBlockStart), blockSize, blockSize, blockSize, lda, ldb, ldc);
+                // MMult_optim6_2(&A(mBlockStart, kBlockStart), &B(kBlockStart, nBlockStart), &C(mBlockStart, nBlockStart), blockSize, blockSize, blockSize, lda, ldb, ldc);
+                MMult_optim7_3(&A(mBlockStart, kBlockStart), &B(kBlockStart, nBlockStart), &C(mBlockStart, nBlockStart), blockSize, blockSize, blockSize, lda, ldb, ldc);
             }
         }
     }
