@@ -8,8 +8,8 @@ void random_matrix(float *mat, int m, int n){
 
     for (int i = 0; i < m; ++i){
         for (int j = 0; j < n; ++j)
-            // mat[OFFSET(i, j, n)] = dist(gen);
-            mat[OFFSET(i, j, n)] = 1;
+            mat[OFFSET(i, j, n)] = dist(gen);
+            // mat[OFFSET(i, j, n)] = 1;
     }
     // print_matrix(m, n, mat, n);
 }
