@@ -23,7 +23,15 @@
 typedef union {
     __m128 reg;    
     float value[4];
-} v2f_regv;
+} v4f_regv;
+
+// https://github1s.com/BBuf/how-to-optimize-gemm/blob/master/x86/src/MMult_4x4_14.h#L65-L69
+#include <immintrin.h> //avx2
+typedef union
+{
+  __m256 reg;
+  float value[8];
+} v8f_regv;
 
 // #define blockSize 40
 // #define mBlockSize 40

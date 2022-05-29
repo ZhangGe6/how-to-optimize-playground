@@ -4,7 +4,6 @@
 // use pointer to reduce indexing overhead, as suggested in https://github.com/flame/how-to-optimize-gemm/wiki/Optimization_1x4_7
 // So what is the reason that pointer can reduce indexing overhead? I GUESS that by using pointer, the calculation of index is simplified (pure addition and no muplication)
 
-// based on MMult_optim4_4
 // even slightly slower
 void MMult_optim5_1(float *A, float *B, float *C, const int M, const int K, const int N, const int lda, const int ldb, const int ldc)
 {
@@ -23,10 +22,12 @@ void MMult_optim5_1(float *A, float *B, float *C, const int M, const int K, cons
 
   for (int i = 0; i < M; i += 4) {
     for (int j = 0; j < N; j += 4) {
-      c_00_reg = 0.0;   c_01_reg = 0.0;   c_02_reg = 0.0;   c_03_reg = 0.0;
-      c_10_reg = 0.0;   c_11_reg = 0.0;   c_12_reg = 0.0;   c_13_reg = 0.0;
-      c_20_reg = 0.0;   c_21_reg = 0.0;   c_22_reg = 0.0;   c_23_reg = 0.0;
-      c_30_reg = 0.0;   c_31_reg = 0.0;   c_32_reg = 0.0;   c_33_reg = 0.0;
+      // use last C value to initilize registers, to fight against floating-point rounding error problem when cache blocking is used later
+      // and C should be initilized to 0 at the very first.
+      c_00_reg = C(i, j);        c_01_reg = C(i, j + 1);        c_02_reg = C(i, j + 2);       c_03_reg = C(i, j + 3);
+      c_10_reg = C(i + 1, j);    c_11_reg = C(i + 1, j + 1);    c_12_reg = C(i + 1, j + 2);   c_13_reg = C(i + 1, j + 3);
+      c_20_reg = C(i + 2, j);    c_21_reg = C(i + 2, j + 1);    c_22_reg = C(i + 2, j + 2);   c_23_reg = C(i + 2, j + 3);
+      c_30_reg = C(i + 3, j);    c_31_reg = C(i + 3, j + 1);    c_32_reg = C(i + 3, j + 2);   c_33_reg = C(i + 3, j + 3);
 
       b_p_j0 = &(B(0, j));
       b_p_j1 = &(B(0, j + 1));
@@ -91,10 +92,10 @@ void MMult_optim5_1(float *A, float *B, float *C, const int M, const int K, cons
         b_p_j2 += ldb;
         b_p_j3 += ldb;
       }
-      C(i, j) += c_00_reg;   C(i, j+1) += c_01_reg;   C(i, j+2) += c_02_reg;   C(i, j+3) += c_03_reg;
-      C(i+1, j) += c_10_reg;   C(i+1, j+1) += c_11_reg;   C(i+1, j+2) += c_12_reg;   C(i+1, j+3) += c_13_reg;
-      C(i+2, j) += c_20_reg;   C(i+2, j+1) += c_21_reg;   C(i+2, j+2) += c_22_reg;   C(i+2, j+3) += c_23_reg;
-      C(i+3, j) += c_30_reg;   C(i+3, j+1) += c_31_reg;   C(i+3, j+2) += c_32_reg;   C(i+3, j+3) += c_33_reg;
+      C(i, j) = c_00_reg;   C(i, j+1) = c_01_reg;   C(i, j+2) = c_02_reg;   C(i, j+3) = c_03_reg;
+      C(i+1, j) = c_10_reg;   C(i+1, j+1) = c_11_reg;   C(i+1, j+2) = c_12_reg;   C(i+1, j+3) = c_13_reg;
+      C(i+2, j) = c_20_reg;   C(i+2, j+1) = c_21_reg;   C(i+2, j+2) = c_22_reg;   C(i+2, j+3) = c_23_reg;
+      C(i+3, j) = c_30_reg;   C(i+3, j+1) = c_31_reg;   C(i+3, j+2) = c_32_reg;   C(i+3, j+3) = c_33_reg;
     }
   }
 }

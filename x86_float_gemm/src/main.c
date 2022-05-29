@@ -5,16 +5,16 @@
 int main() {
     FILE *fptr;
     // fptr = fopen("../res/MMult_base.txt","w");
-    fptr = fopen("../res/MMult_optim7_4.txt", "w");
+    fptr = fopen("../res/MMult_optim7_2.txt", "w");
     if(fptr == NULL)
     {
         printf("Error open file!");   
         exit(1);             
     }
 
-    for (int msize = 40; msize <= 1200; msize += 40){
+    for (int msize = 80; msize <= 1200; msize += 40){
     // for (int msize = 32; msize <= 1024; msize += 32){
-    // for (int msize = 4; msize <= 8; msize += 4){   
+    // for (int msize = 8; msize <= 8; msize += 4){   
     // for (int msize = 360; msize <= 360; msize += 4){    
         float *A, *B, *C_base, *C_optim;
         const int M = msize, K = msize, N = msize;
@@ -55,6 +55,7 @@ int main() {
 
             // MMult_optim4_1(A, B, C_optim, M, K, N, lda, ldb, ldc);
             // MMult_optim4_2(A, B, C_optim, M, K, N, lda, ldb, ldc);
+            // MMult_optim4_2_1(A, B, C_optim, M, K, N, lda, ldb, ldc);
             // MMult_optim4_3(A, B, C_optim, M, K, N, lda, ldb, ldc);
             // MMult_optim4_4(A, B, C_optim, M, K, N, lda, ldb, ldc);
 
@@ -64,9 +65,11 @@ int main() {
             // MMult_optim6_2(A, B, C_optim, M, K, N, lda, ldb, ldc);
 
             // MMult_optim7_1(A, B, C_optim, M, K, N, lda, ldb, ldc);
-            // MMult_optim7_2(A, B, C_optim, M, K, N, lda, ldb, ldc);
+            MMult_optim7_2(A, B, C_optim, M, K, N, lda, ldb, ldc);
             // MMult_optim7_3(A, B, C_optim, M, K, N, lda, ldb, ldc);
-            MMult_optim7_4(A, B, C_optim, M, K, N, lda, ldb, ldc);
+            // MMult_optim7_4(A, B, C_optim, M, K, N, lda, ldb, ldc);
+
+            // MMult_optim8_1(A, B, C_optim, M, K, N, lda, ldb, ldc);
 
 
 

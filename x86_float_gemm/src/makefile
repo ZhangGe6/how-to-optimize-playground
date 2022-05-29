@@ -1,7 +1,7 @@
 
 
 CC         := gcc
-CFLAGS     := -O2 -Wall -msse3
+CFLAGS     := -O2 -Wall -msse3 -mavx   # -mavx is needed to use __m256
 LDFLAGS    := -lm
 
 BUILD=../build
