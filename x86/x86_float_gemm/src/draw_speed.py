@@ -15,8 +15,8 @@ methods = [
             'MMult_optim3_1', 'MMult_optim3_4', 'MMult_optim3_5',
             'MMult_optim4_1', 'MMult_optim4_2', 
             'MMult_optim5_1',
-            'MMult_optim6_2', # 'MMult_optim6_3',
-            'MMult_optim7_2', # 'MMult_optim7_3',
+            'MMult_optim6_2', 'MMult_optim6_3',
+            'MMult_optim7_2', 'MMult_optim7_3',
             'MMult_optim8_2',
             # 'MMult_optim9_1',
         ]
@@ -25,7 +25,9 @@ colors = dict(mcolors.BASE_COLORS, **mcolors.CSS4_COLORS)
 # Sort colors by hue, saturation, value and name.
 by_hsv = sorted((tuple(mcolors.rgb_to_hsv(mcolors.to_rgba(color)[:3])), name)
                 for name, color in colors.items())
-sorted_color_names = [name for i, (hsv, name) in enumerate(by_hsv) if i % 16 == 0] + [name for i, (hsv, name) in enumerate(by_hsv) if i % 20 == 0] + [name for i, (hsv, name) in enumerate(by_hsv) if i % 30 == 0]
+sorted_color_names = [name for i, (hsv, name) in enumerate(by_hsv) if i % 20 == 0] \
+                   + [name for i, (hsv, name) in enumerate(by_hsv) if i % 30 == 0] \
+                   + [name for i, (hsv, name) in enumerate(by_hsv) if i % 40 == 0]
 
 for i, method in enumerate(methods):
     resfile = '../res/' + method + '.txt'
