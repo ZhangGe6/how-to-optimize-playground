@@ -7,7 +7,7 @@
 
 // naive one
 // https://github.com/flame/how-to-optimize-gemm/wiki/Optimization_4x4_5
-// a further boost compared with MMul_optim3_2 (more levels of unrool help)
+// a further boost compared with MMul_optim3_2 (more levels of unrooling helps)
 void MMult_optim6_1(int m, int k, int n, double *A, double *B, double *C, int lda, int ldb, int ldc)
 {
   for (int i = 0; i < m; i += 4){

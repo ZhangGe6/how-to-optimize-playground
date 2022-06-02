@@ -26,7 +26,7 @@ typedef union {
 } v4f_regv;
 
 // https://github1s.com/BBuf/how-to-optimize-gemm/blob/master/x86/src/MMult_4x4_14.h#L65-L69
-#include <immintrin.h> //avx2
+#include <immintrin.h> //avx
 typedef union
 {
   __m256 reg;

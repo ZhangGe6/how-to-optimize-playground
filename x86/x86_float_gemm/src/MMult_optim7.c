@@ -139,6 +139,7 @@ void MMult_optim7_1(float *A, float *B, float *C, const int M, const int K, cons
 
 // Then use the vector registers to combine the computations
 // larger boost 
+// In addition, if compiled with `-mfma` flag, then FMA instruction will be automatically used, generating the same performance with MMult_optim7_3
 void MMult_optim7_2(float *A, float *B, float *C, const int M, const int K, const int N, const int lda, const int ldb, const int ldc)
 {
   // register float  c_00_reg, c_01_reg, c_02_reg, c_03_reg, c_04_reg, c_05_reg, c_06_reg, c_07_reg,  
