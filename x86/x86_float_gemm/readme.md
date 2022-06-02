@@ -38,7 +38,7 @@ Usage: `./exec.sh`
     - MMult_optim3_5 (~ 4.2 GFLOPs)
 
   - How it works:
-    - loop unrolling reduces the cost of loop overhead, such as branching on the termination condition and updating counter variables. (However, excessive unrolling degrades performance)
+    - loop unrolling reduces the cost of loop overhead, such as branching on the termination condition and updating counter variables. (However, excessive unrolling can also degrade performance)
     - Some helpful matierals: [ScienceDirect](https://www.sciencedirect.com/topics/computer-science/loop-unrolling)
 
 - :rocket: **utilize register again after unrolling**. [MMult_optim4_x](./src/MMult_optim4.c)
@@ -72,7 +72,7 @@ Usage: `./exec.sh`
     - MMult_optim7_2 (~ 30 GFLOPs)
 
   - How it works: 
-    - SIMD is data-level parallelism, which enables processing multiple data with a single instruction. Requiring fewer instructions to process a given mass of data, SIMD operations yield higher efficiency than scalar operations.
+    - SIMD is a data-level parallelism, which enables processing multiple data with a single instruction. Requiring fewer instructions to process a given mass of data, SIMD operations yield higher efficiency than scalar operations.
 
     - Some helpful matierals: [Quora](https://qr.ae/pvFvMA), [zhihu(Chinese)](https://zhuanlan.zhihu.com/p/55327037), [CSDN blog(Chinese)](https://blog.csdn.net/qq_32916805/article/details/117637192), [blog](https://blog.triplez.cn/posts/avx-avx2-learning-notes/), [blog](https://chhzh123.github.io/summary/parallel-computing/#simd), 
 
@@ -87,7 +87,7 @@ Usage: `./exec.sh`
     - MMult_optim7_3 (~ 38 GFLOPs)
 
   - How it works
-    - FMA instruction set is an extension to the 128 and 256-bit Streaming SIMD Extensions instructions in the x86 microprocessor instruction set. While using FMA, A single instruction reads three operands, multiplies two operands and adds the third to the product, and writes the sum in the result operand. Hence, the two floating-point instructions (multiplication and addition) would be replaced by one, so the speed is increased. In addition, higher precision is achieved because only one rounding is applied when doing floating-point computation.
+    - FMA instruction set is an extension to the 128 and 256-bit Streaming SIMD Extensions instructions in the x86 microprocessor instruction set. While using FMA, A single instruction reads three operands, multiplies two operands and adds the third to the product, and writes the sum in the result operand. Hence, the two floating-point instructions (multiplication and addition) would be replaced by one, so the speed is increased. In addition, higher precision is achieved because only one rounding is applied when doing  the floating-point computation.
     - Some helpful materials: [doc](https://course.ccs.neu.edu/cs3650/ssl/TEXT-CD/Content/COD3e/InMoreDepth/IMD3-The-PowerPCs-Multiply-Add-Instruction.pdf), [Wikipedia](https://en.wikipedia.org/wiki/Multiply–accumulate_operation), [Quora](https://www.quora.com/How-does-Fused-Multiply-Add-FMA-work-and-what-is-its-importance-in-computing)
 
 - :rocket: **use cache blocking**. [MMult_optim8_x](./src/MMult_optim8.c)
@@ -106,7 +106,7 @@ Usage: `./exec.sh`
     - MMult_optim9_1 (~ 8.5 GFLOPs) (based on MMult_optim6_3)
 
   - How it works (theoretically)
-    - Packing refers to the rearranging of B elements to make them suitable to the way we access B in the inner compute kernel. 
+    - Packing refers to the rearranging of elements to make them suitable to the way we access in the inner compute kernel. 
 
     - I think that packing itself will cause extra overhead, leading to the performance drop in my experiments. In [FBGEMM source code](https://github.com/pytorch/FBGEMM/blob/9d7c48a65419d0350f9e9e72f31e05bfe37e85a4/src/PackBMatrix.cc#L14~L166), packing is applied to weights. Since weights are constant during inference,  it can be packed once and used multiple times, compensating the overhead of packing.
     - Some helpful materials: [blog](https://chhzh123.github.io/blogs/2020-03-20-tvm-gemm/#数组打包packing), [FBGEMM source code](https://github.com/pytorch/FBGEMM/blob/9d7c48a65419d0350f9e9e72f31e05bfe37e85a4/src/PackBMatrix.cc#L14~L166)

@@ -27,11 +27,11 @@ Usage: `./exec.sh`
   - successful case(s): MMult_optim1_1
   - fairly boost (~ 250 GFLOPs)
   - How it works:
-    - The temporary products are accumulated into a register and once done writes the result to global memory. Thus reducing global memory accesses.
+    - The temporary products are accumulated into a register and once done writes the result to global memory, Thus reducing global memory accesses.
 
 - :rocket: **blocking into shared memory. (square blocks)** [MMult_optim2_x](./src/MMult_optim2.cu)
   - successful case(s): MMult_optim2_1
-  - slightly boost (based on MMult_base) (~ 900 GFLOPs)
+  - significant boost (based on MMult_base) (~ 900 GFLOPs)
   - How it works:
     - Shared memory is expected to be much faster than global memory. By dividing the C matrix into sub-blocks (to fit the device's resources) and moving the corresponding data into shared memory to compute, a lot of global memory accesses are saved.
     - Some helpful matierals: [Nvidia guide](https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#shared-memory), [zhihu-article section `从global memory到shared memory`](https://zhuanlan.zhihu.com/p/435908830)
@@ -46,7 +46,7 @@ Usage: `./exec.sh`
     - MMult_optim3_4 (~ 2450 GFLOPs)
 
   - How it works:
-    - As articles [1](https://cnugteren.github.io/tutorial/pages/page5.html), [2](https://zhuanlan.zhihu.com/p/410278370) say, the compute-to(-shared-)memory-access ratio is low (1/3), so the computation latency can not be well hidden, limiting the performance. According to my understanding, this trick is a kind of shared-memory-level blocking (as illustrated by `从shared memory到register` in this [article](https://zhuanlan.zhihu.com/p/435908830)). So the shared memory access can be reduced, increasing the compute-to(-shared-)memory-access ratio and boosting the performance.
+    - As articles [1](https://cnugteren.github.io/tutorial/pages/page5.html), [2](https://zhuanlan.zhihu.com/p/410278370) say, the compute-to(-shared-)memory-access ratio is low (1/3) in the earlier versions, so the computation latency can not be well hidden, limiting the performance. According to my understanding, this trick is a kind of shared-memory-level blocking (as illustrated by `从shared memory到register` in this [article](https://zhuanlan.zhihu.com/p/435908830)). So the shared memory access can be reduced, increasing the compute-to(-shared-)memory-access ratio and boosting the performance.
 
 - :rocket: **use CUDA vector types like float4**. [MMult_optim5_x](./src/MMult_optim4.cu)
   - successful case(s): 

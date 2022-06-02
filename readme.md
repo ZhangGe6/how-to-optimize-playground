@@ -9,15 +9,19 @@
    - double GEMM optimization [click for more details](./x86/x86_double_gemm/)
 
  - CUDA 
-   - float32 GEMM optimization [click for more details](./CUDA/cuda_float_gemm/)
+   - float32 GEMM optimization [click for more details](./cuda/cuda_float_gemm/)
 
 
 The following figures show the effects of optimizations, respectively.
 ![](./x86/x86_float_gemm/res/cur_all.png)
-![](./CUDA/cuda_float_gemm/res/cur_all.png)
 
-The following are some brief notes for the optimization tricks I take.
+![](./cuda/cuda_float_gemm/res/cur_all.png)
 
  
 
 >  For HPC, I am still a (very) freshman. Any issues are welcomed!
+
+# Credits
+- [BBuf/how-to-optimize-gemm](https://github.com/BBuf/how-to-optimize-gemm)
+- [Cjkkkk/CUDA_gemm](https://github.com/Cjkkkk/CUDA_gemm)
+- [Liu-xiandong/How_to_optimize_in_GPU](https://github.com/Liu-xiandong/How_to_optimize_in_GPU/tree/master/sgemm)
