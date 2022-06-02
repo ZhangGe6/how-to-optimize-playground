@@ -1,6 +1,7 @@
 import os
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+plt.figure(figsize=(8, 4.8))
 
 # change it according to our machine
 peak_GFlops_ps = 6000 # a tempory one here
@@ -8,6 +9,7 @@ peak_GFlops_ps = 6000 # a tempory one here
 plt.ylim((0, peak_GFlops_ps))
 plt.xlabel('matirx size')
 plt.ylabel('GFlops')
+plt.title('CUDA float32 GEMM')
 
 methods = [
         'MMul_benchmark',
@@ -21,7 +23,7 @@ colors = dict(mcolors.BASE_COLORS, **mcolors.CSS4_COLORS)
 # Sort colors by hue, saturation, value and name.
 by_hsv = sorted((tuple(mcolors.rgb_to_hsv(mcolors.to_rgba(color)[:3])), name)
                 for name, color in colors.items())
-sorted_color_names = [name for i, (hsv, name) in enumerate(by_hsv) if i % 16 == 0] + [name for i, (hsv, name) in enumerate(by_hsv) if i % 20 == 0] + [name for i, (hsv, name) in enumerate(by_hsv) if i % 30 == 0]
+sorted_color_names = [name for i, (hsv, name) in enumerate(by_hsv) if i % 14 == 0] + [name for i, (hsv, name) in enumerate(by_hsv) if i % 20 == 0] + [name for i, (hsv, name) in enumerate(by_hsv) if i % 30 == 0]
 
 for i, method in enumerate(methods):
     resfile = '../res/' + method + '.txt'
@@ -37,5 +39,7 @@ for i, method in enumerate(methods):
 
     plt.plot(msize_set, GF_ps_set, color=sorted_color_names[i], marker="*", label=method)
 
-plt.legend()
+# plt.legend()
+plt.legend(loc='upper left', bbox_to_anchor=(1., 1.))
+plt.tight_layout()
 plt.savefig('../res/' + 'cur_all' + '.png')

@@ -167,6 +167,7 @@ void MMult_optim4_2_1(float *A, float *B, float *C, const int M, const int K, co
     }
   }
 }
+
 // use register for the 4x4 unrolling + pragma unroll
 // no difference with raw `register for the 4x4 unrolling`, aka, MMult_optim4_2
 void MMult_optim4_3(float *A, float *B, float *C, const int M, const int K, const int N, const int lda, const int ldb, const int ldc)

@@ -355,3 +355,80 @@ void MMult_optim7_3(float *A, float *B, float *C, const int M, const int K, cons
     }
   }
 }
+
+// *alpha + beta
+void MMult_optim7_4(float *A, float *B, float *C, const int M, const int K, const int N, const int lda, const int ldb, const int ldc)
+{
+  v8f_regv c_row_0, c_row_1, c_row_2, c_row_3;
+  v8f_regv a_0p_v, a_1p_v, a_2p_v, a_3p_v;
+  v8f_regv b_p;
+
+  float *a_i0_p, *a_i1_p, *a_i2_p, *a_i3_p;
+  // float *b_p_j0, *b_p_j1, *b_p_j2, *b_p_j3, *b_p_j4, *b_p_j5, *b_p_j6, *b_p_j7;
+  float *b_p_j0;
+
+  float alpha = 1.0;
+  float beta = 0.0;
+
+  for (int i = 0; i < M; i += 4) {
+    for (int j = 0; j < N; j += 8) {
+
+      c_row_0.reg = _mm256_loadu_ps(&C(i, j));
+      c_row_1.reg = _mm256_loadu_ps(&C(i + 1, j));
+      c_row_2.reg = _mm256_loadu_ps(&C(i + 2, j));
+      c_row_3.reg = _mm256_loadu_ps(&C(i + 3, j));
+      // printf("run to here\n");
+      
+      b_p_j0 = &(B(0, j));
+
+      a_i0_p = &(A(i, 0));
+      a_i1_p = &(A(i + 1, 0));
+      a_i2_p = &(A(i + 2, 0));
+      a_i3_p = &(A(i + 3, 0));
+
+      for (int p = 0; p < K; ++p) {
+
+        a_0p_v.reg = _mm256_set1_ps(*a_i0_p);
+        a_1p_v.reg = _mm256_set1_ps(*a_i1_p);
+        a_2p_v.reg = _mm256_set1_ps(*a_i2_p);
+        a_3p_v.reg = _mm256_set1_ps(*a_i3_p);
+
+        b_p.reg = _mm256_loadu_ps((float *)b_p_j0);
+
+        // 1st row
+        // c_row_0.reg += a_0p_v.reg * b_p.reg;
+        c_row_0.reg = _mm256_fmadd_ps(a_0p_v.reg, b_p.reg, c_row_0.reg);
+
+        // 2nd row
+        // c_row_1.reg += a_1p_v.reg * b_p.reg;
+        c_row_1.reg = _mm256_fmadd_ps(a_1p_v.reg, b_p.reg, c_row_1.reg);
+
+        // 3rd row
+        // c_row_2.reg += a_2p_v.reg * b_p.reg;
+        c_row_2.reg = _mm256_fmadd_ps(a_2p_v.reg, b_p.reg, c_row_2.reg);
+
+        // 4th row
+        // c_row_3.reg += a_3p_v.reg * b_p.reg;
+        c_row_3.reg = _mm256_fmadd_ps(a_3p_v.reg, b_p.reg, c_row_3.reg);
+
+        // update pointers
+        a_i0_p += 1;
+        a_i1_p += 1;
+        a_i2_p += 1;
+        a_i3_p += 1;
+
+        b_p_j0 += ldb;
+      }
+      // c_xx_reg[i:i + 4, j:j + 4]
+      C(i, j) = c_row_0.value[0] * alpha + beta;   C(i, j+1) = c_row_0.value[1] * alpha + beta;   C(i, j+2) = c_row_0.value[2] * alpha + beta;   C(i, j+3) = c_row_0.value[3] * alpha + beta;
+      C(i+1, j) = c_row_1.value[0] * alpha + beta;   C(i+1, j+1) = c_row_1.value[1] * alpha + beta;   C(i+1, j+2) = c_row_1.value[2] * alpha + beta;   C(i+1, j+3) = c_row_1.value[3] * alpha + beta;
+      C(i+2, j) = c_row_2.value[0] * alpha + beta;   C(i+2, j+1) = c_row_2.value[1] * alpha + beta;   C(i+2, j+2) = c_row_2.value[2] * alpha + beta;   C(i+2, j+3) = c_row_2.value[3] * alpha + beta;
+      C(i+3, j) = c_row_3.value[0] * alpha + beta;   C(i+3, j+1) = c_row_3.value[1] * alpha + beta;   C(i+3, j+2) = c_row_3.value[2] * alpha + beta;   C(i+3, j+3) = c_row_3.value[3] * alpha + beta;
+      // c_xx_reg[i:i + 4, j + 4:j + 8]
+      C(i, j+4) = c_row_0.value[4] * alpha + beta;   C(i, j+5) = c_row_0.value[5] * alpha + beta;   C(i, j+6) = c_row_0.value[6] * alpha + beta;   C(i, j+7) = c_row_0.value[7] * alpha + beta;
+      C(i+1, j+4) = c_row_1.value[4] * alpha + beta;   C(i+1, j+5) = c_row_1.value[5] * alpha + beta;   C(i+1, j+6) = c_row_1.value[6] * alpha + beta;   C(i+1, j+7) = c_row_1.value[7] * alpha + beta;
+      C(i+2, j+4) = c_row_2.value[4] * alpha + beta;   C(i+2, j+5) = c_row_2.value[5] * alpha + beta;   C(i+2, j+6) = c_row_2.value[6] * alpha + beta;   C(i+2, j+7) = c_row_2.value[7] * alpha + beta;
+      C(i+3, j+4) = c_row_3.value[4] * alpha + beta;   C(i+3, j+5) = c_row_3.value[5] * alpha + beta;   C(i+3, j+6) = c_row_3.value[6] * alpha + beta;   C(i+3, j+7) = c_row_3.value[7] * alpha + beta;
+    }
+  }
+}

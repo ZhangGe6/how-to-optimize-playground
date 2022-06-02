@@ -201,7 +201,6 @@ void MMult_optim6_2(float *A, float *B, float *C, const int M, const int K, cons
 
 // use Fuse Multiply and Add (FMA) instruction
 // -mfma flag is needed for compiling
-// 
 void MMult_optim6_3(float *A, float *B, float *C, const int M, const int K, const int N, const int lda, const int ldb, const int ldc)
 {
   v4f_regv c_row_0, c_row_1, c_row_2, c_row_3;
